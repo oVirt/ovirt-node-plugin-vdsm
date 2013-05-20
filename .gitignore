@@ -1,0 +1,13 @@
+Makefile.in
+Makefile
+aclocal.m4
+configure
+missing
+install-sh
+ovirt-node-plugin-vdsm.spec
+ovirt-node-plugin*tar.gz
+autom4te.cache
+*.swp
+py-compile
+config.status
+config.log

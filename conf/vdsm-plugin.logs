@@ -1,0 +1,5 @@
+# relevant log files for vdsm
+/var/log/vdsm/vdsm.log
+/var/log/vdsm-reg/vdsm-reg.log
+/var/log/vdsm-config
+/var/log/vdsm/mom.log

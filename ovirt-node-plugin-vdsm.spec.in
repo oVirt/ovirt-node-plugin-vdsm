@@ -1,0 +1,90 @@
+Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
+Name:           ovirt-node-plugin-vdsm
+Version:        @VERSION@
+Release:        0%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Source0:        %{name}-%{version}.tar.gz
+License:        GPLv2+
+Group:          Applications/System
+
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+URL:            http://www.ovirt.org/
+Requires:       ovirt-node >= 3.0.0
+Requires:       python
+Requires:       vdsm >= 4.10.3
+Requires:       vdsm-cli >= 4.10.3
+Requires:       vdsm-reg >= 4.10.3
+Requires:       ovirt-host-deploy >= 1.0.0
+Requires:       vdsm-hook-vhostmd
+Requires(post): augeas
+
+BuildArch:      noarch
+
+%define app_root %{_datadir}/%{name}
+%define recipe_root %{_datadir}/ovirt-node-recipe
+
+%description
+Provides UI and associated scripts for integrating oVirt Node and oVirt Engine
+
+%package recipe
+Summary:        Kickstarts for building oVirt Node isos including %{name}
+Group:          Applications/System
+Requires:       ovirt-node-recipe >= 2.6.0
+
+%description recipe
+Provides kickstart files for generating an oVirt Node ISO image containing
+%{name}.
+
+%prep
+%setup -q
+
+
+%build
+%configure
+
+%install
+%{__rm} -rf %{buildroot}
+make install DESTDIR=%{buildroot}
+
+
+%clean
+%{__rm} -rf %{buildroot}
+
+
+%post
+# semanage is not present in the image and virt_use_nfs is on (see rhbz#642209)
+# remove it from vdsmd startup script to avoid error
+sed -i 's#/usr/sbin/semanage#/bin/true#' /etc/rc.d/init.d/vdsmd
+
+# libvirtd upstart job is already configured on rhevh
+sed -i 's/ && start_libvirtd$//' /etc/rc.d/init.d/vdsmd
+
+# chkconfig results (symlinks) cannnot be peristed
+sed -i 's#/sbin/chkconfig \$srv off##' /etc/rc.d/init.d/vdsmd
+
+# reserve vdsm port 54321
+augtool << \EOF_sysctl
+set /files/etc/sysctl.conf/net.ipv4.ip_local_reserved_ports 54321
+save
+EOF_sysctl
+
+%preun
+
+%files recipe
+%{recipe_root}
+
+%files
+%{python_sitelib}/ovirt/node/setup/engine_page.py*
+%{_sysconfdir}/ovirt-plugins.d
+
+%changelog
+* Fri May 17 2013 Mike Burns <mburns@redhat.com> 0.0.2
+- Rename to ovirt-node-plugin-vdsm
+- rebase onto ovirt-node 3.0.0 codebase
+- add note about changing sshd when setting passwd
+- fix password changing
+- fix some requirements
+- add minimization
+
+* Fri Feb 15 2013 Mike Burns <mburns@redhat.com> 0.0.1
+- initial commit
+- engine_page from current ovirt-node

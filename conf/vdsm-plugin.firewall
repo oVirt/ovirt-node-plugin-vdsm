@@ -1,0 +1,2 @@
+#ports and protocols that vdsm needs opened
+54321,tcp
