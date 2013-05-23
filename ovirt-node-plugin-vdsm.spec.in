@@ -15,6 +15,7 @@ Requires:       vdsm-cli >= 4.10.3
 Requires:       vdsm-reg >= 4.10.3
 Requires:       ovirt-host-deploy >= 1.0.0
 Requires:       vdsm-hook-vhostmd
+Requires:       vdsm-gluster
 Requires(post): augeas
 
 BuildArch:      noarch
