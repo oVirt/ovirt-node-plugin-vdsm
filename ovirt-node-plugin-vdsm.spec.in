@@ -74,6 +74,7 @@ EOF_sysctl
 
 %files
 %{python_sitelib}/ovirt/node/setup/engine_page.py*
+%{python_sitelib}/ovirt/node/setup/config.py*
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog

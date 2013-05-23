@@ -21,6 +21,7 @@
 from ovirt.node import plugins, valid, ui, utils, app, exceptions
 from ovirt.node.config.defaults import NodeConfigFileSection
 from ovirt.node.plugins import Changeset
+from . import config
 import logging
 import os
 import sys
@@ -46,7 +47,7 @@ class Plugin(plugins.NodePlugin):
         self._model = {}
 
     def name(self):
-        return "oVirt Engine"
+        return config.engine_name
 
     def rank(self):
         return 100
@@ -71,7 +72,9 @@ class Plugin(plugins.NodePlugin):
                 }
 
     def ui_content(self):
-        ws = [ui.Header("header[0]", "oVirt Engine Configuration"),
+        ws = [ui.Header("header[0]",
+              "{engine_name} Configuration".format(
+                  engine_name=config.engine_name)),
               ui.Entry("vdsm_cfg.address", "Management Server:"),
               ui.Entry("vdsm_cfg.port", "Management Server Port:"),
               ui.Divider("divider[0]"),
@@ -134,7 +137,8 @@ class Plugin(plugins.NodePlugin):
                 buttons = [ui.Button("action.cert.reject", "Close")]
 
             self._fp_dialog = ui.Dialog("dialog.engine.fp",
-                                        "@ENGINENAME@ Fingerprint",
+                                        "{engine_name} Fingerprint".format(
+                                            engine_name=config.engine_name),
                                         [ui.Label("dialog.label[0]", "TBD"),
                                          ui.Label("dialog.fp", fingerprint)])
             self._fp_dialog.buttons = buttons
@@ -155,7 +159,8 @@ class Plugin(plugins.NodePlugin):
             self._fp_dialog.close()
             self._server, self._port, self._cert_path = None, None, None
 
-        txs = utils.Transaction("Configuring oVirt Engine")
+        txs = utils.Transaction("Configuring {engine_name}".format(
+            engine_name=config.engine_name))
 
         if changes.contains_any(["vdsm_cfg.password_confirmation"]):
             self.logger.debug("Setting engine password")
@@ -226,7 +231,8 @@ def findPort(engineServer, enginePort):
             break
 
     if not is_reachable:
-        raise RuntimeError("Can't connect to @ENGINENAME@")
+        raise RuntimeError("Can't connect to {engine_name}".format(
+            engine_name=config.engine_name))
 
     return enginePort
 
@@ -256,7 +262,9 @@ def retrieveCetrificate(engineServer, enginePort):
         _, _, path = deployUtil.certPaths('')
         fingerprint = deployUtil.generateFingerPrint(path)
     else:
-        msgCert = "Failed downloading @ENGINENAME@ certificate"
+        msgCert = "Failed downloading " \
+            "{engine_name} certificate".format(
+                engine_name=config.engine_name)
         raise RuntimeError(msgCert)
 
     return path, fingerprint
@@ -339,10 +347,13 @@ class ActivateVDSM(utils.Transaction.Element):
             deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg',
                                  'start'])
 
-            msgConf = "@ENGINENAME@ Configuration Successfully Updated"
+            msgConf = "{engine_name} Configuration Successfully " \
+                " Updated".format(
+                    engine_name=config.engine_name)
             self.logger.debug(msgConf)
         else:
-            msgConf = "@ENGINENAME@ Configuration Failed"
+            msgConf = "{engine_name} Configuration Failed".format(
+                engine_name=config.engine_name)
             raise RuntimeError(msgConf)
 
 
