@@ -114,6 +114,7 @@ class Plugin(plugins.NodePlugin):
         pass
 
     def on_merge(self, effective_changes):
+        model = VDSM()
         self.logger.info("Saving engine stuff")
         changes = Changeset(self.pending_changes(False))
         effective_model = Changeset(self.model())
@@ -146,13 +147,11 @@ class Plugin(plugins.NodePlugin):
 
         elif changes.contains_any(["action.cert.accept"]):
             self._fp_dialog.close()
-            model = VDSM()
             model.update(self._server, self._port, self._cert_path)
             utils.fs.Config().persist(self._cert_path)
             self._server, self._port, self._cert_path = None, None, None
 
         elif changes.contains_any(["action.cert.reject"]):
-            model = VDSM()
             model.update(cert_path=None)
             utils.fs.Config().unpersist(self._cert_path)
             os.unlink(self._cert_path)
@@ -167,9 +166,12 @@ class Plugin(plugins.NodePlugin):
             txs += [SetEnginePassword()]
 
         if effective_changes.contains_any(["action.register"]) and \
-                changes.contains_any(["vdsm_cfg.address"]):
+                           effective_model["vdsm_cfg.address"] != "":
+            model.update(server=effective_model["vdsm_cfg.address"],
+                         port=effective_model["vdsm_cfg.port"])
             self.logger.debug("Connecting to engine")
-            txs += [ActivateVDSM()]
+            txs += [ActivateVDSM(effective_model["vdsm_cfg.address"],
+                                 effective_model["vdsm_cfg.port"])]
 
         if len(txs) > 0:
             progress_dialog = ui.TransactionProgressDialog("dialog.txs", txs,
@@ -315,6 +317,11 @@ class SetRootPassword(utils.Transaction.Element):
 class ActivateVDSM(utils.Transaction.Element):
     title = "Activating VDSM"
 
+    def __init__(self, server, port):
+        super(ActivateVDSM, self).__init__()
+        self.server = server
+        self.port = port
+
     def cert_validator(self):
         cert_path = VDSM().retrieve()["cert_path"]
         cert_exists = cert_path and os.path.exists(cert_path)
@@ -325,7 +332,7 @@ class ActivateVDSM(utils.Transaction.Element):
         self.logger.info("Connecting to VDSM server")
 
         if not self.cert_validator():
-            return False
+            self.logger.info("Trying register without validating cert..")
 
         # pylint: disable-msg=E0611,F0401
         sys.path.append('/usr/share/vdsm-reg')
@@ -342,10 +349,11 @@ class ActivateVDSM(utils.Transaction.Element):
 
         # Stopping vdsm-reg may fail but its ok - its in the case when the
         # menus are run after installation
+        self.logger.info("Stopping vdsm-reg service")
         deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'stop'])
         if write_vdsm_config(cfg["server"], cfg["port"]):
-            deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg',
-                                 'start'])
+            self.logger.info("Starting vdsm-reg service")
+            deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'start'])
 
             msgConf = "{engine_name} Configuration Successfully " \
                 " Updated".format(
