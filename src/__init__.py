@@ -1,4 +1,4 @@
-# Copyright (C) 2010 Red Hat, Inc.
+# Copyright (C) 2012-2013 Red Hat, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,26 +15,12 @@
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
 
-nodeconfdir = $(sysconfdir)/sysconfig
-localboottriggerdir=$(sysconfdir)/ovirt-config-boot.d
+from . import engine_page
 
-#
-# newt tui
-#
-pyovirtsetupdir = $(pythondir)/ovirt/node/setup/vdsm
-pyovirtsetup_PYTHON = \
-  engine_page.py \
-  __init__.py \
-  config.py
+"""
+VDSM/oVirt Engine Plugin
+"""
 
-# Requires python-pep8 package (Fedora)
-check-local: check-local-pep8
 
-check-local-pep8:
-	find $(srcdir) -name \*.py | sort | uniq | xargs pep8 --repeat --statistics --count
-
-check-local-doctest:
-	find $(srcdir) -name \*.py | sort | uniq | xargs python -m doctest -v
-
-clean-local:
-	rm -f config.py
+def createPlugins(application):
+    engine_page.Plugin(application)
