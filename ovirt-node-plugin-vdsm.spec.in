@@ -1,7 +1,7 @@
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @VERSION@
-Release:        0%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Release:        1%{?BUILD_NUMBER}%{?extra_release}%{?dist}
 Source0:        %{name}-%{version}.tar.gz
 License:        GPLv2+
 Group:          Applications/System
@@ -14,7 +14,9 @@ Requires:       vdsm >= 4.10.3
 Requires:       vdsm-cli >= 4.10.3
 Requires:       vdsm-reg >= 4.10.3
 Requires:       ovirt-host-deploy >= 1.0.0
+%if ! 0%{?centos}
 Requires:       vdsm-hook-vhostmd
+%endif
 Requires:       vdsm-gluster
 Requires(post): augeas
 
