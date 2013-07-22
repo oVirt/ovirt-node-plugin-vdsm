@@ -42,6 +42,7 @@ Provides kickstart files for generating an oVirt Node ISO image containing
 
 
 %build
+autoreconf -if
 %configure
 
 %install
