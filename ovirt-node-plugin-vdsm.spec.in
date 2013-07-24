@@ -10,10 +10,8 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 URL:            http://www.ovirt.org/
 Requires:       ovirt-node >= 3.0.0
 Requires:       python
-Requires:       vdsm >= 4.10.3
-Requires:       vdsm-cli >= 4.10.3
 Requires:       vdsm-reg >= 4.10.3
-Requires:       ovirt-host-deploy >= 1.0.0
+Requires:       ovirt-host-deploy-offline >= 1.1.0
 %if ! 0%{?centos}
 Requires:       vdsm-hook-vhostmd
 %endif
