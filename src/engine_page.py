@@ -151,7 +151,8 @@ class Plugin(plugins.NodePlugin):
 
         if changes.contains_any(["vdsm_cfg.password"]):
             self.logger.debug("Setting engine password")
-            txs += [SetEnginePassword()]
+            txs += [SetRootPassword(
+                password=effective_model["vdsm_cfg.password"])]
 
         if effective_changes.contains_any(["action.register"]) and \
                 effective_model["vdsm_cfg.address"] != "":
@@ -351,10 +352,3 @@ class ActivateVDSM(utils.Transaction.Element):
             msgConf = "{engine_name} Configuration Failed".format(
                 engine_name=config.engine_name)
             raise RuntimeError(msgConf)
-
-
-class SetEnginePassword(utils.Transaction.Element):
-    title = "Setting Engine password"
-
-    def commit(self):
-        self.logger.info("Setting Engine password")
