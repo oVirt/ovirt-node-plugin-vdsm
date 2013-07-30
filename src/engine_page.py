@@ -60,7 +60,6 @@ class Plugin(plugins.NodePlugin):
             "vdsm_cfg.cert": "Verified"
             if utils.fs.Config().exists(cfg["cert_path"]) else "N/A",
             "vdsm_cfg.password": "",
-            "vdsm_cfg.password_confirmation": ""
         }
         return model
 
@@ -86,9 +85,7 @@ class Plugin(plugins.NodePlugin):
                        "Engine UI"),
               ui.Label("vdsm_cfg.password._label2",
                        "Note: Setting password will enable SSH daemon"),
-              ui.PasswordEntry("vdsm_cfg.password", "Password:"),
-              ui.PasswordEntry("vdsm_cfg.password_confirmation",
-                               "Confirm Password:"),
+              ui.ConfirmedEntry("vdsm_cfg.password", "Password:", True),
               ]
 
         page = ui.Page("page", ws)
@@ -98,18 +95,9 @@ class Plugin(plugins.NodePlugin):
         return page
 
     def on_change(self, changes):
-        if changes.contains_any(["vdsm_cfg.password",
-                                 "vdsm_cfg.password_confirmation"]):
+        if changes.contains_any(["vdsm_cfg.password"]):
             self._model.update(changes)
             model = self._model
-            admin_pw = model.get("vdsm_cfg.password", "")
-            admin_pw_conf = model.get("vdsm_cfg.password_confirmation", "")
-
-            if admin_pw != admin_pw_conf:
-                raise exceptions.InvalidData("Passwords must be the same.")
-            else:
-                self.widgets["vdsm_cfg.password"].valid(True)
-                self.widgets["vdsm_cfg.password_confirmation"].valid(True)
 
         pass
 
@@ -161,7 +149,7 @@ class Plugin(plugins.NodePlugin):
         txs = utils.Transaction("Configuring {engine_name}".format(
             engine_name=config.engine_name))
 
-        if changes.contains_any(["vdsm_cfg.password_confirmation"]):
+        if changes.contains_any(["vdsm_cfg.password"]):
             self.logger.debug("Setting engine password")
             txs += [SetEnginePassword()]
 
