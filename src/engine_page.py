@@ -166,7 +166,7 @@ class Plugin(plugins.NodePlugin):
             txs += [SetEnginePassword()]
 
         if effective_changes.contains_any(["action.register"]) and \
-           effective_model["vdsm_cfg.address"] != "":
+                effective_model["vdsm_cfg.address"] != "":
             model.update(server=effective_model["vdsm_cfg.address"],
                          port=effective_model["vdsm_cfg.port"])
             self.logger.debug("Connecting to engine")
