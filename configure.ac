@@ -1,4 +1,4 @@
-AC_INIT([ovirt-node-plugin-vdsm], [0.1.0], [node-devel@ovirt.org])
+AC_INIT([ovirt-node-plugin-vdsm], [0.1.1], [node-devel@ovirt.org])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign -Wno-portability tar-pax])
 AC_SUBST([ENGINENAME], ['oVirt Engine'])
 
