@@ -48,11 +48,6 @@ Provides kickstart files for generating an oVirt Node ISO image containing
 %{__rm} -rf %{buildroot}
 make install DESTDIR=%{buildroot}
 
-
-%clean
-%{__rm} -rf %{buildroot}
-
-
 %post
 # semanage is not present in the image and virt_use_nfs is on (see rhbz#642209)
 # remove it from vdsmd startup script to avoid error
