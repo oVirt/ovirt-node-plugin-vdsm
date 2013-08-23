@@ -21,6 +21,7 @@ Requires:       vdsm-gluster
 Requires(post): augeas
 
 BuildArch:      noarch
+BuildRequires:  python2-devel
 
 %define app_root %{_datadir}/%{name}
 %define recipe_root %{_datadir}/ovirt-node-recipe
