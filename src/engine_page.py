@@ -21,8 +21,8 @@
 from ovirt.node import plugins, valid, ui, utils, app, exceptions
 from ovirt.node.config.defaults import NodeConfigFileSection
 from ovirt.node.plugins import Changeset
+from ovirt.node import log
 from . import config
-import logging
 import os
 import sys
 import traceback
@@ -33,7 +33,7 @@ Configure Engine
 """
 
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = log.getLogger(__name__)
 
 
 class Plugin(plugins.NodePlugin):
@@ -169,7 +169,7 @@ class Plugin(plugins.NodePlugin):
             progress_dialog.run()
 
             # VDSM messes with logging, and we just reset it
-            app.configure_logging()
+            log.configure_logging()
 
         # Acts like a page reload
         return self.ui_content()
