@@ -126,10 +126,12 @@ class Plugin(plugins.NodePlugin):
                 buttons = [ui.Button("action.cert.reject", "Close")]
 
             self._fp_dialog = ui.Dialog("dialog.engine.fp",
-                                        "{engine_name} Fingerprint".format(
-                                            engine_name=config.engine_name),
-                                        [ui.Label("dialog.label[0]", "TBD"),
-                                         ui.Label("dialog.fp", fingerprint)])
+                "{engine_name} Fingerprint".format(
+                    engine_name=config.engine_name),
+                    [ui.Label("dialog.label[0]",
+                    "\nPlease review the following fingerprint from Engine:\n"),
+                    ui.Label("dialog.fp", fingerprint)])
+
             self._fp_dialog.buttons = buttons
             return self._fp_dialog
 
