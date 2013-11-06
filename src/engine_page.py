@@ -286,8 +286,8 @@ class VDSM(NodeConfigFileSection):
 
     @NodeConfigFileSection.map_and_update_defaults_decorator
     def update(self, server, port, cert_path):
-        (valid.Empty() | valid.FQDNOrIPAddress())(server)
-        (valid.Empty() | valid.Port())(port)
+        (valid.Empty(or_none=True) | valid.FQDNOrIPAddress())(server)
+        (valid.Empty(or_none=True) | valid.Port())(port)
 
 
 class SetRootPassword(utils.Transaction.Element):
