@@ -121,16 +121,17 @@ class Plugin(plugins.NodePlugin):
                 self._cert_path, fingerprint = retrieveCetrificate(server,
                                                                    port)
                 self._server, self._port = server, port
+                title_msg = "\nPlease review the following SSL fingerprint" \
+                            " from Engine:\n"
             except Exception as e:
                 fingerprint = str(e)
+                title_msg = "\n"
                 buttons = [ui.Button("action.cert.reject", "Close")]
 
-            self._fp_dialog = ui.Dialog("dialog.engine.fp",
-                "{engine_name} Fingerprint".format(
-                    engine_name=config.engine_name),
-                    [ui.Label("dialog.label[0]",
-                    "\nPlease review the following fingerprint from Engine:\n"),
-                    ui.Label("dialog.fp", fingerprint)])
+            self._fp_dialog = ui.Dialog("dialog.engine.fp", "{engine_name} "
+                                        "Fingerprint".format(engine_name=config.engine_name),
+                                        [ui.Label("dialog.label[0]", title_msg),
+                                        ui.Label("dialog.fp", fingerprint)])
 
             self._fp_dialog.buttons = buttons
             return self._fp_dialog
