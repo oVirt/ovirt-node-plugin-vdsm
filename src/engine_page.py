@@ -19,7 +19,7 @@
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
 from ovirt.node import plugins, valid, ui, utils, app, exceptions
-from ovirt.node.config.defaults import NodeConfigFileSection
+from ovirt.node.config.defaults import NodeConfigFileSection, SSH
 from ovirt.node.plugins import Changeset
 from . import config
 import logging
@@ -302,9 +302,9 @@ class SetRootPassword(utils.Transaction.Element):
         passwd = utils.security.Passwd()
         passwd.set_password("root", self.password)
 
-        sshd = utils.security.Ssh()
-        sshd.password_authentication(True)
-        sshd.restart()
+        sshcfg = SSH()
+        sshcfg.update(pwauth=True)
+        sshcfg.commit()
 
 
 class ActivateVDSM(utils.Transaction.Element):
