@@ -19,7 +19,7 @@
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
 from ovirt.node import plugins, valid, ui, utils, app, exceptions
-from ovirt.node.config.defaults import NodeConfigFileSection, SSH
+from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
 from . import config
 import logging
@@ -34,6 +34,7 @@ Configure Engine
 
 
 LOGGER = logging.getLogger(__name__)
+MGMT_IFACES = ('ovirtmgmt', 'rhevm')
 
 
 class Plugin(plugins.NodePlugin):
@@ -348,11 +349,26 @@ class ActivateVDSM(utils.Transaction.Element):
             self.logger.info("Starting vdsm-reg service")
             deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'start'])
 
+            mgmtInterface = []
+            for iface in MGMT_IFACES:
+                if os.path.exists('/sys/class/net/' + iface):
+                    mgmtInterface = [iface]
+                    break
+
+            mgmt = Management()
+            mgmt.update("oVirt Engine http://%s:%s" % (cfg["server"],
+                                                       cfg["port"]),
+                        mgmtInterface,
+                        None)
+
             msgConf = "{engine_name} Configuration Successfully " \
                 " Updated".format(
                     engine_name=config.engine_name)
             self.logger.debug(msgConf)
         else:
+            mgmt = Management()
+            mgmt.clear()
+
             msgConf = "{engine_name} Configuration Failed".format(
                 engine_name=config.engine_name)
             raise RuntimeError(msgConf)
