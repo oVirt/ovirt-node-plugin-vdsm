@@ -34,7 +34,29 @@ Configure Engine
 
 
 LOGGER = log.getLogger(__name__)
-MGMT_IFACES = ('ovirtmgmt', 'rhevm')
+
+
+def sync_mgmt():
+    """Guess mgmt interface and update TUI config
+       FIXME: Autoinstall should write MANAGED_BY and MANAGED_IFNAMES
+       into /etc/defaults/ovirt
+    """
+    MGMT_IFACES = ('ovirtmgmt', 'rhevm')
+    cfg = VDSM().retrieve()
+
+    mgmtInterface = []
+    for iface in MGMT_IFACES:
+        if os.path.exists('/sys/class/net/' + iface):
+            mgmtInterface = [iface]
+            break
+
+    mgmt = Management()
+    mgmt.update(
+        "oVirt Engine http://%s:%s" % (cfg["server"],
+                                       cfg["port"]),
+        mgmtInterface,
+        None
+    )
 
 
 class Plugin(plugins.NodePlugin):
@@ -46,6 +68,7 @@ class Plugin(plugins.NodePlugin):
     def __init__(self, app):
         super(Plugin, self).__init__(app)
         self._model = {}
+        sync_mgmt()
 
     def name(self):
         return config.engine_name
@@ -72,6 +95,7 @@ class Plugin(plugins.NodePlugin):
                 }
 
     def ui_content(self):
+        sync_mgmt()
         ws = [ui.Header("header[0]",
               "{engine_name} Configuration".format(
                   engine_name=config.engine_name)),
@@ -348,18 +372,7 @@ class ActivateVDSM(utils.Transaction.Element):
         if write_vdsm_config(cfg["server"], cfg["port"]):
             self.logger.info("Starting vdsm-reg service")
             deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'start'])
-
-            mgmtInterface = []
-            for iface in MGMT_IFACES:
-                if os.path.exists('/sys/class/net/' + iface):
-                    mgmtInterface = [iface]
-                    break
-
-            mgmt = Management()
-            mgmt.update("oVirt Engine http://%s:%s" % (cfg["server"],
-                                                       cfg["port"]),
-                        mgmtInterface,
-                        None)
+            sync_mgmt()
 
             msgConf = "{engine_name} Configuration Successfully " \
                 " Updated".format(
