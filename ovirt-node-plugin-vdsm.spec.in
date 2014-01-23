@@ -3,7 +3,7 @@
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @VERSION@
-Release:        8%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Release:        9%{?BUILD_NUMBER}%{?extra_release}%{?dist}
 Source0:        %{name}-%{version}.tar.gz
 License:        GPLv2+
 Group:          Applications/System
@@ -86,6 +86,9 @@ EOF_sysctl
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog
+* Thu Jan 23 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.1-9
+- engine_page: replace log import (BZ#1019859)
+
 * Thu Jan 9 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.1-8
 - Use Management class to pass informations (BZ#1048929)
 
