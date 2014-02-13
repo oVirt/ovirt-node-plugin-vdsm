@@ -18,15 +18,16 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
-from ovirt.node import plugins, valid, ui, utils, app, exceptions
-from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
-from ovirt.node.plugins import Changeset
-from ovirt.node import log
-from . import config
+import httplib
 import os
 import sys
 import traceback
-import httplib
+
+from . import config
+
+from ovirt.node import plugins, valid, ui, utils, app, exceptions, log
+from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
+from ovirt.node.plugins import Changeset
 
 """
 Configure Engine
