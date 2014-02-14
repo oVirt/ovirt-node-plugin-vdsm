@@ -25,7 +25,7 @@ import traceback
 
 from . import config
 
-from ovirt.node import plugins, valid, ui, utils, exceptions, log
+from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
 
