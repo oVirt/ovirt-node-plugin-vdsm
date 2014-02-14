@@ -29,6 +29,8 @@ from ovirt.node import plugins, valid, ui, utils, app, exceptions, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
 
+from vdsm import netinfo
+
 """
 Configure Engine
 """
@@ -41,20 +43,22 @@ def sync_mgmt():
        FIXME: Autoinstall should write MANAGED_BY and MANAGED_IFNAMES
        into /etc/defaults/ovirt
     """
-    MGMT_IFACES = ('ovirtmgmt', 'rhevm')
     cfg = VDSM().retrieve()
+    networks = netinfo.networks()
 
-    mgmtInterface = []
-    for iface in MGMT_IFACES:
-        if os.path.exists('/sys/class/net/' + iface):
-            mgmtInterface = [iface]
-            break
+    mgmtIface = []
+    for net in networks:
+        if net in ('ovirtmgmt', 'rhevm'):
+            if 'bridge' in networks[net]:
+                mgmtIface = [networks[net]['bridge']]
+            else:
+                mgmtIface = [networks[net]['iface']]
 
     mgmt = Management()
     mgmt.update(
         "oVirt Engine http://%s:%s" % (cfg["server"],
                                        cfg["port"]),
-        mgmtInterface,
+        mgmtIface,
         None
     )
 
