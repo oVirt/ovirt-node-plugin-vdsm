@@ -44,6 +44,7 @@ def sync_mgmt():
        FIXME: Autoinstall should write MANAGED_BY and MANAGED_IFNAMES
        into /etc/defaults/ovirt
     """
+    engine_data = None
     cfg = VDSM().retrieve()
     networks = netinfo.networks()
 
@@ -55,13 +56,13 @@ def sync_mgmt():
             else:
                 mgmtIface = [networks[net]['iface']]
 
+
+    if cfg["server"] is not None:
+        server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
+        engine_data = "oVirt Engine http://%s" % ":".join(server_url)
+
     mgmt = Management()
-    mgmt.update(
-        "oVirt Engine http://%s:%s" % (cfg["server"],
-                                       cfg["port"]),
-        mgmtIface,
-        None
-    )
+    mgmt.update(engine_data, mgmtIface, None)
 
 
 class Plugin(plugins.NodePlugin):
