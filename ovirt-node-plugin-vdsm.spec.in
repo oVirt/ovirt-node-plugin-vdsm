@@ -1,5 +1,13 @@
 %define is_f19 %(test "0%{?fedora}" -eq "019" && echo 1 || echo 0)
 
+%if 0%{?fedora} >= 18 || 0%{?rhel} >= 6
+%global with_gluster 1
+%endif
+
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
+%global with_systemd 1
+%endif
+
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @VERSION@
@@ -22,6 +30,10 @@ Requires(post): augeas
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
+
+%if 0%{?with_gluster}
+Requires: glusterfs-server
+%endif
 
 %define app_root %{_datadir}/%{name}
 %define recipe_root %{_datadir}/ovirt-node-recipe
@@ -50,6 +62,17 @@ Provides kickstart files for generating an oVirt Node ISO image containing
 make install DESTDIR=%{buildroot}
 
 %post
+if [ $1 -eq 1 ]; then
+%if 0%{?with_gluster}
+%if ! 0%{?with_systemd}
+    service glusterd start >/dev/null 2>&1 || :
+    chkconfig --add glusterd >/dev/null 2>&1 || :
+%else
+    systemctl start glusterd.service >/dev/null 2>&1 || :
+    systemctl enable glusterd.service >/dev/null 2>&1 || :
+%endif
+%endif
+
 # semanage is not present in the image and virt_use_nfs is on (see rhbz#642209)
 # remove it from vdsmd startup script to avoid error
 sed -i 's#/usr/sbin/semanage#/bin/true#' /etc/rc.d/init.d/vdsmd
@@ -65,7 +88,7 @@ augtool << \EOF_sysctl
 set /files/etc/sysctl.conf/net.ipv4.ip_local_reserved_ports 54321
 save
 EOF_sysctl
-
+fi
 #SELinux Booleans
 /usr/sbin/setsebool -P virt_use_nfs=1 \
                        virt_use_sanlock=1 \
@@ -77,6 +100,19 @@ EOF_sysctl
 %endif
 
 %preun
+
+%postun
+if [ $1 -eq 0 ]; then
+%if 0%{?with_gluster}
+%if ! 0%{?with_systemd}
+    service glusterd stop >/dev/null 2>&1 || :
+    chkconfig --del glusterd >/dev/null 2>&1 || :
+%else
+    systemctl stop glusterd.service >/dev/null 2>&1 || :
+    systemctl disable glusterd.service >/dev/null 2>&1 || :
+%endif
+%endif
+fi
 
 %files recipe
 %{recipe_root}
