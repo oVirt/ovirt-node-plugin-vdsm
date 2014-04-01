@@ -25,6 +25,7 @@ import traceback
 
 from . import config
 
+from ovirt_config_setup.engine import compatiblePort
 from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
@@ -128,7 +129,6 @@ class Plugin(plugins.NodePlugin):
                 ui.Entry("vdsm_cfg.address", "Management Server:"),
                 ui.Entry("vdsm_cfg.port", "Management Server Port:"),
                 ui.Divider("divider[0]"),
-                ui.SaveButton("action.fetch_cert", "Retrieve Certificate"),
                 ui.KeywordLabel("vdsm_cfg.cert", "Certificate Status: "),
                 ui.Divider("divider[1]"),
                 ui.Label("vdsm_cfg.password._label",
@@ -154,9 +154,6 @@ class Plugin(plugins.NodePlugin):
     def on_change(self, changes):
         if changes.contains_any(["vdsm_cfg.password"]):
             self._model.update(changes)
-            model = self._model
-
-        pass
 
     def on_merge(self, effective_changes):
         model = VDSM()
@@ -168,35 +165,59 @@ class Plugin(plugins.NodePlugin):
         self.logger.debug("Changes: %s" % changes)
         self.logger.debug("Effective Model: %s" % effective_model)
 
-        if changes.contains_any(["action.fetch_cert"]):
-            buttons = [ui.Button("action.cert.accept", "Accept"),
-                       ui.Button("action.cert.reject", "Reject & Remove")]
+        cfg_port = effective_model["vdsm_cfg.port"]
+        cfg_server = effective_model["vdsm_cfg.address"]
+        compat, ssl_port = compatiblePort(cfg_port)
+        buttons = [ui.Button("action.cert.accept", "Accept"),
+                   ui.Button("action.cert.reject", "Reject & Remove")]
 
+        txs = utils.Transaction(
+            "Configuring {engine_name}".format(
+            engine_name=config.engine_name
+            )
+        )
+
+        if ssl_port and effective_changes.contains_any(["action.register"]):
+            title_msg = "\n"
             try:
-                server = effective_model["vdsm_cfg.address"]
-                port = findPort(server, effective_model["vdsm_cfg.port"])
-                self._cert_path, fingerprint = retrieveCetrificate(server,
-                                                                   port)
-                self._server, self._port = server, port
-                title_msg = "\nPlease review the following SSL fingerprint" \
-                            " from Engine:\n"
+                port = findPort(cfg_server, cfg_port)
+                self._server, self._port = cfg_server, port
+                self._cert_path, fingerprint = retrieveCetrificate(
+                    cfg_server,
+                    port
+                )
+
+                if changes.contains_any(["vdsm_cfg.password"]):
+                    title_msg = "\nSetting root password and starting sshd\n\n"
+                    SetRootPassword(
+                        password=effective_model["vdsm_cfg.password"]
+                    ).commit()
+
+                title_msg += "Please review the following SSL fingerprint" \
+                             " from Engine:\n"
             except Exception as e:
                 fingerprint = str(e)
                 title_msg = "\n"
                 buttons = [ui.Button("action.cert.reject", "Close")]
 
             self._fp_dialog = ui.Dialog("dialog.engine.fp", "{engine_name} "
-                                        "Fingerprint".format(engine_name=config.engine_name),
-                                        [ui.Label("dialog.label[0]", title_msg),
-                                        ui.Label("dialog.fp", fingerprint)])
+                                        "Fingerprint".format(
+                                            engine_name=config.engine_name
+                                        ),
+                                        [ui.Label(
+                                            "dialog.label[0]",
+                                            title_msg),
+                                         ui.Label("dialog.fp", fingerprint)])
 
             self._fp_dialog.buttons = buttons
             return self._fp_dialog
 
-        elif changes.contains_any(["action.cert.accept"]):
+        elif effective_model.contains_any(["action.cert.accept"]):
             self._fp_dialog.close()
             model.update(self._server, self._port, self._cert_path)
             utils.fs.Config().persist(self._cert_path)
+            txs += [ActivateVDSM(effective_model["vdsm_cfg.address"],
+                                 effective_model["vdsm_cfg.port"])]
             self._server, self._port, self._cert_path = None, None, None
 
         elif changes.contains_any(["action.cert.reject"]):
@@ -207,21 +228,33 @@ class Plugin(plugins.NodePlugin):
             self._fp_dialog.close()
             self._server, self._port, self._cert_path = None, None, None
 
-        txs = utils.Transaction("Configuring {engine_name}".format(
-            engine_name=config.engine_name))
-
-        if changes.contains_any(["vdsm_cfg.password"]):
-            self.logger.debug("Setting engine password")
-            txs += [SetRootPassword(
-                password=effective_model["vdsm_cfg.password"])]
-
         if effective_changes.contains_any(["action.register"]) and \
                 effective_model["vdsm_cfg.address"] != "":
-            model.update(server=effective_model["vdsm_cfg.address"],
-                         port=effective_model["vdsm_cfg.port"])
             self.logger.debug("Connecting to engine")
-            txs += [ActivateVDSM(effective_model["vdsm_cfg.address"],
-                                 effective_model["vdsm_cfg.port"])]
+
+            if changes.contains_any(["vdsm_cfg.password"]):
+                txs += [SetRootPassword(
+                    password=effective_model["vdsm_cfg.password"])
+                ]
+
+            try:
+                effective_model["vdsm_cfg.port"] = findPort(cfg_server,
+                                                            cfg_port)
+                txs += [
+                    ActivateVDSM(
+                        effective_model["vdsm_cfg.address"],
+                        effective_model["vdsm_cfg.port"]
+                    )
+                ]
+            except Exception as e:
+                txs += [CannotFindEngine()]
+
+            model.update(
+                server=effective_model["vdsm_cfg.address"],
+                port=effective_model["vdsm_cfg.port"]
+            )
+            self._server = effective_model["vdsm_cfg.address"]
+            self._port = effective_model["vdsm_cfg.port"]
 
         if len(txs) > 0:
             progress_dialog = ui.TransactionProgressDialog("dialog.txs", txs,
@@ -244,9 +277,6 @@ def findPort(engineServer, enginePort):
 
     from ovirt_config_setup.engine import \
         TIMEOUT_FIND_HOST_SEC  # @UnresolvedImport
-    from ovirt_config_setup.engine import \
-        compatiblePort  # @UnresolvedImport
-    # pylint: enable-msg=E0611,F0401
 
     compatPort, sslPort = compatiblePort(enginePort)
 
@@ -346,6 +376,15 @@ class VDSM(NodeConfigFileSection):
     def update(self, server, port, cert_path):
         (valid.Empty(or_none=True) | valid.FQDNOrIPAddress())(server)
         (valid.Empty(or_none=True) | valid.Port())(port)
+
+
+class CannotFindEngine(utils.Transaction.Element):
+    title = "Trying to connect with oVirt Engine.."
+
+    def commit(self):
+        raise RuntimeError(
+            "Cannot connect with oVirt Engine!"
+        )
 
 
 class SetRootPassword(utils.Transaction.Element):
