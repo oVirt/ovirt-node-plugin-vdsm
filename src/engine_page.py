@@ -56,7 +56,6 @@ def sync_mgmt():
             else:
                 mgmtIface = [networks[net]['iface']]
 
-
     if cfg["server"] is not None:
         server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
         engine_data = "oVirt Engine http://%s" % ":".join(server_url)
@@ -102,25 +101,53 @@ class Plugin(plugins.NodePlugin):
 
     def ui_content(self):
         sync_mgmt()
-        ws = [ui.Header("header[0]",
-              "{engine_name} Configuration".format(
-                  engine_name=config.engine_name)),
-              ui.Entry("vdsm_cfg.address", "Management Server:"),
-              ui.Entry("vdsm_cfg.port", "Management Server Port:"),
-              ui.Divider("divider[0]"),
-              ui.SaveButton("action.fetch_cert", "Retrieve Certificate"),
-              ui.KeywordLabel("vdsm_cfg.cert", "Certificate Status: "),
-              ui.Divider("divider[1]"),
-              ui.Label("vdsm_cfg.password._label",
-                       "Optional password for adding Node through oVirt " +
-                       "Engine UI"),
-              ui.Label("vdsm_cfg.password._label2",
-                       "Note: Setting password will enable SSH daemon"),
-              ui.ConfirmedEntry("vdsm_cfg.password", "Password:", True),
-              ]
+
+        buttons = []
+        net_is_configured = utils.network.NodeNetwork().is_configured()
+        header_menu = "{engine_name} Configuration".format(
+            engine_name=config.engine_name
+        )
+
+        if not net_is_configured:
+            ws = [
+                ui.Header(
+                    "header[0]",
+                    header_menu
+                ),
+                ui.Notice("network.notice",
+                          "Networking is not configured, " +
+                          "please configure it before " +
+                          "registering"),
+                ui.Divider("divider[0]")
+            ]
+        else:
+            ws = [
+                ui.Header(
+                    "header[0]",
+                    header_menu
+                ),
+                ui.Entry("vdsm_cfg.address", "Management Server:"),
+                ui.Entry("vdsm_cfg.port", "Management Server Port:"),
+                ui.Divider("divider[0]"),
+                ui.SaveButton("action.fetch_cert", "Retrieve Certificate"),
+                ui.KeywordLabel("vdsm_cfg.cert", "Certificate Status: "),
+                ui.Divider("divider[1]"),
+                ui.Label("vdsm_cfg.password._label",
+                         "Optional password for adding Node through oVirt " +
+                         "Engine UI"),
+                ui.Label("vdsm_cfg.password._label2",
+                         "Note: Setting password will enable SSH daemon"),
+                ui.ConfirmedEntry("vdsm_cfg.password", "Password:", True),
+            ]
+            buttons = [
+                ui.SaveButton(
+                    "action.register",
+                    "Save & Register"
+                )
+            ]
 
         page = ui.Page("page", ws)
-        page.buttons = [ui.SaveButton("action.register", "Save & Register")]
+        page.buttons = buttons
 
         self.widgets.add(page)
         return page
