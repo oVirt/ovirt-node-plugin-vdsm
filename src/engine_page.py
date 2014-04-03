@@ -58,7 +58,12 @@ def sync_mgmt():
 
     if cfg["server"] is not None:
         server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
-        engine_data = "oVirt Engine http://%s" % ":".join(server_url)
+        port, sslPort = compatiblePort(cfg["port"])
+        if sslPort:
+            proto = "https"
+        else:
+            proto = "http"
+        engine_data = "oVirt Engine %s://%s" % (proto,":".join(server_url))
 
     mgmt = Management()
     mgmt.update(engine_data, mgmtIface, None)
