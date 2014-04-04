@@ -25,7 +25,6 @@ import traceback
 
 from . import config
 
-from ovirt_config_setup.engine import compatiblePort
 from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
@@ -322,6 +321,28 @@ def findPort(engineServer, enginePort):
             engine_name=config.engine_name))
 
     return enginePort
+
+
+def compatiblePort(portNumber):
+    """
+    Until the version 3.0, oVirt Engine provided port 8443/8080 to oVirt Node
+    download cert and others files. Since 3.1 the default port changed to
+    443/80. This function, will return the compatible port in case the VDSM
+    cannot communicate with oVirt Engine.
+
+    :param portNumber: port which doesn't communicate with oVirt Engine
+    :returns: compatible port number (or None if there is no compatible port)
+              and if it's SSL port or not (bool)
+    """
+
+    compatPort = {
+        '443': ('8443', True),
+        '8443': ('443', True),
+        '80': ('8080', False),
+        '8080': ('80', False)
+    }
+
+    return compatPort.get(portNumber, (None, False))
 
 
 def isHostReachable(host, port, ssl, timeout):
