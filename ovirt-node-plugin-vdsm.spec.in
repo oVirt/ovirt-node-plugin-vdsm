@@ -3,7 +3,7 @@
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @VERSION@
-Release:        10%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Release:        0%{?BUILD_NUMBER}%{?extra_release}%{?dist}
 Source0:        %{name}-%{version}.tar.gz
 License:        GPLv2+
 Group:          Applications/System
@@ -76,6 +76,13 @@ EOF_sysctl
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog
+* Mon Apr 21 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.2-0
+- spec: remove uneeded sed's (BZ#1088218)
+- engine_page: add compatiblePort() to src
+- engine_page: Display correctly proto for Manage by (BZ#1065401)
+- engine_page: Remove Retrieve Certificate button (BZ#1081042)
+- engine_page: network is required to register tab (BZ#1064206)
+
 * Mon Feb 17 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.1-10
 - engine_page: order imports
 - engine_page: use vdsm to detect mgmt interface (BZ#1058257)
