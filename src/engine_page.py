@@ -181,7 +181,8 @@ class Plugin(plugins.NodePlugin):
             )
         )
 
-        if ssl_port and effective_changes.contains_any(["action.register"]):
+        if cfg_server and ssl_port and \
+                effective_changes.contains_any(["action.register"]):
             title_msg = "\n"
             try:
                 port = findPort(cfg_server, cfg_port)
@@ -232,14 +233,14 @@ class Plugin(plugins.NodePlugin):
             self._fp_dialog.close()
             self._server, self._port, self._cert_path = None, None, None
 
+        if changes.contains_any(["vdsm_cfg.password"]):
+            txs += [SetRootPassword(
+                password=effective_model["vdsm_cfg.password"]
+            )]
+
         if effective_changes.contains_any(["action.register"]) and \
                 effective_model["vdsm_cfg.address"] != "":
             self.logger.debug("Connecting to engine")
-
-            if changes.contains_any(["vdsm_cfg.password"]):
-                txs += [SetRootPassword(
-                    password=effective_model["vdsm_cfg.password"])
-                ]
 
             try:
                 effective_model["vdsm_cfg.port"] = findPort(cfg_server,
