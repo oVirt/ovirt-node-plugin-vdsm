@@ -18,18 +18,20 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
+import errno
 import httplib
 import os
 import sys
 import traceback
 
 from . import config
+from socket import error as socket_error
 
 from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
 
-from vdsm import netinfo
+from vdsm import vdscli
 
 """
 Configure Engine
@@ -45,15 +47,24 @@ def sync_mgmt():
     """
     engine_data = None
     cfg = VDSM().retrieve()
-    networks = netinfo.networks()
 
     mgmtIface = []
-    for net in networks:
-        if net in ('ovirtmgmt', 'rhevm'):
-            if 'bridge' in networks[net]:
-                mgmtIface = [networks[net]['bridge']]
-            else:
-                mgmtIface = [networks[net]['iface']]
+
+    try:
+        cli = vdscli.connect()
+        networks = cli.getVdsCapabilities()['info']['networks']
+
+        for net in networks:
+            if net in ('ovirtmgmt', 'rhevm'):
+                if 'bridge' in networks[net]:
+                    mgmtIface = [networks[net]['bridge']]
+                else:
+                    mgmtIface = [networks[net]['iface']]
+    except socket_error as err:
+        if err.errno == errno.ECONNREFUSED:
+            LOGGER.debug("Connection refused with VDSM", exc_info=True)
+        else:
+            raise
 
     if cfg["server"] is not None:
         server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
