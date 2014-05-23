@@ -66,6 +66,11 @@ def sync_mgmt():
             LOGGER.debug("Connection refused with VDSM", exc_info=True)
         else:
             raise
+    except Exception as err:
+        if 'No permission to read file:' in str(err):
+            LOGGER.debug("pem files not available yet!", exc_info=True)
+        else:
+            raise
 
     if cfg["server"] is not None:
         server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
