@@ -3,7 +3,7 @@
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @VERSION@
-Release:        1%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Release:        2%{?BUILD_NUMBER}%{?extra_release}%{?dist}
 Source0:        %{name}-%{version}.tar.gz
 License:        GPLv2+
 Group:          Applications/System
@@ -76,6 +76,9 @@ EOF_sysctl
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog
+* Fri May 23 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.2-2
+- engine_page: catch exception from vdscli.connect()
+
 * Tue May 20 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.2-1
 - engine_page: replace netinfo to xmlrpc (BZ#1097645)
 - engine_page: set password when no address is used (BZ#1096074)
