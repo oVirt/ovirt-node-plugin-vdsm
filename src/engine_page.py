@@ -96,6 +96,8 @@ def sync_mgmt():
     except socket_error as err:
         if err.errno == errno.ECONNREFUSED:
             LOGGER.debug("Connection refused with VDSM", exc_info=True)
+        elif err.errno == errno.ENETUNREACH:
+            LOGGER.debug("Network is unreachable to reach VDSM", exc_info=True)
         else:
             raise
     except Exception as err:
