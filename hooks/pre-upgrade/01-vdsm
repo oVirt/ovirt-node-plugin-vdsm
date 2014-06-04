@@ -1,0 +1,37 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# 01-vdsm - Copyright (C) 2014 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+import sys
+
+from vdsm import utils
+
+
+def main():
+
+    print("%s: Stopping vdsmd to upgrade" % sys.argv[0])
+    rc, out, err = utils.execCmd(
+        ['vdsm-tool', 'service-stop', 'vdsmd'],
+        sudo=True,
+        raw=True
+    )
+
+    sys.stdout.write(out)
+
+    if rc != 0:
+        sys.stderr.write("Failed to stop vdsdm: %s" % err)
+
+
+    return rc
+
+if __name__ == "__main__":
+    sys.exit(main())

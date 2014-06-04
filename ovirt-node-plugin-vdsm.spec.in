@@ -10,7 +10,7 @@ Group:          Applications/System
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 URL:            http://www.ovirt.org/
-Requires:       ovirt-node >= 3.0.0
+Requires:       ovirt-node >= 3.0.4
 Requires:       python
 Requires:       vdsm-reg >= 4.10.3
 Requires:       ovirt-host-deploy-offline >= 1.1.0
@@ -73,6 +73,7 @@ EOF_sysctl
 
 %files
 %{python_sitelib}/ovirt/node/setup/vdsm
+%{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog

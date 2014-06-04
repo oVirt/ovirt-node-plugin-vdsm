@@ -25,6 +25,7 @@ SHELL := /bin/bash
 
 SUBDIRS = \
   conf \
+	hooks \
 	src \
 	recipe
 
