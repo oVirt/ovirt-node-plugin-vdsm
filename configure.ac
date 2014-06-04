@@ -8,6 +8,7 @@ AC_CONFIG_FILES([Makefile
                 src/Makefile
                 src/config.py
                 conf/Makefile
+                hooks/Makefile
                 recipe/Makefile
                 ovirt-node-plugin-vdsm.spec])
 AC_OUTPUT
