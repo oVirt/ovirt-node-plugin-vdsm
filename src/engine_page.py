@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
+import ConfigParser
 import errno
 import httplib
 import os
@@ -30,6 +31,7 @@ from socket import error as socket_error
 from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH, Management
 from ovirt.node.plugins import Changeset
+from ovirt.node.utils.fs import Config
 
 from vdsm import vdscli
 
@@ -39,6 +41,36 @@ Configure Engine
 
 
 LOGGER = log.getLogger(__name__)
+
+
+def update_conf(conf_file, session, option, value):
+    """
+    Update configuration file
+
+    Args:
+    conf_file -- Configuration file
+    session -- Session in the configuration file
+    option -- option to be updated
+    value -- value to be updated in the option value
+
+    Returns: True or False
+    """
+
+    if not os.path.exists(conf_file):
+        raise IOError('Cannot find file to be updated.')
+
+    try:
+        cfg = ConfigParser.RawConfigParser()
+        cfg.read(conf_file)
+        cfg.set(session, option, value)
+
+        with open(conf_file, 'w+') as configfile:
+            cfg.write(configfile)
+    except ConfigParser.Error:
+        LOGGER.debug("Cannot write into file!", exc_info=True)
+        raise
+
+    return True
 
 
 def sync_mgmt():
@@ -293,12 +325,11 @@ class Plugin(plugins.NodePlugin):
 def findPort(engineServer, enginePort):
     """Function to find the correct port for a given server
     """
+    _TIMEOUT_FIND_HOST_SEC = 5
+
     # pylint: disable-msg=E0611,F0401
     sys.path.append('/usr/share/vdsm-reg')
     import deployUtil  # @UnresolvedImport
-
-    from ovirt_config_setup.engine import \
-        TIMEOUT_FIND_HOST_SEC  # @UnresolvedImport
 
     compatPort, sslPort = compatiblePort(enginePort)
 
@@ -325,7 +356,7 @@ def findPort(engineServer, enginePort):
         try:
             is_reachable = isHostReachable(host=engineServer,
                                            port=try_port, ssl=use_ssl,
-                                           timeout=TIMEOUT_FIND_HOST_SEC)
+                                           timeout=_TIMEOUT_FIND_HOST_SEC)
         except Exception:
             LOGGER.debug("Failed to reach engine: %s" % traceback.format_exc())
 
@@ -452,6 +483,11 @@ class ActivateVDSM(utils.Transaction.Element):
 
     def __init__(self, server, port):
         super(ActivateVDSM, self).__init__()
+
+        if not os.path.exists(config.VDSM_CONFIG):
+            self.create_vdsm_conf()
+            self.logger.info("Agent configuration files created.")
+
         self.server = server
         self.port = port
 
@@ -460,6 +496,21 @@ class ActivateVDSM(utils.Transaction.Element):
         cert_exists = cert_path and os.path.exists(cert_path)
 
         return cert_exists
+
+    def create_vdsm_conf(self):
+        cfg = ConfigParser.RawConfigParser()
+
+        cfg.add_section('addresses')
+        cfg.set('addresses', 'management_port', '54321')
+
+        cfg.add_section('vars')
+        cfg.set('vars', 'trust_store_path', '/etc/pki/vdsm/')
+        cfg.set('vars', 'ssl', 'true')
+
+        with open(config.VDSM_CONFIG, 'w') as configfile:
+            cfg.write(configfile)
+
+        Config().persist(config.VDSM_CONFIG)
 
     def commit(self):
         self.logger.info("Connecting to VDSM server")
@@ -472,11 +523,7 @@ class ActivateVDSM(utils.Transaction.Element):
         import deployUtil  # @UnresolvedImport
 
         sys.path.append('/usr/share/vdsm')
-        from vdsm import constants  # @UnresolvedImport
-
-        from ovirt_config_setup.engine import \
-            write_vdsm_config  # @UnresolvedImport
-        # pylint: enable-msg=E0611,F0401
+        from vdsm import constants
 
         cfg = VDSM().retrieve()
 
@@ -484,19 +531,36 @@ class ActivateVDSM(utils.Transaction.Element):
         # menus are run after installation
         self.logger.info("Stopping vdsm-reg service")
         deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'stop'])
-        if write_vdsm_config(cfg["server"], cfg["port"]):
-            self.logger.info("Starting vdsm-reg service")
-            deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'start'])
-            sync_mgmt()
 
-            msgConf = "{engine_name} Configuration Successfully " \
-                " Updated".format(
-                    engine_name=config.engine_name)
-            self.logger.debug(msgConf)
-        else:
+        try:
+            update_conf(
+                config.VDSM_REG_CONFIG,
+                "vars",
+                "vdc_host_name",
+                cfg["server"]
+            )
+
+            update_conf(
+                config.VDSM_REG_CONFIG,
+                "vars",
+                "vdc_host_port",
+                cfg["port"]
+            )
+        except (ConfigParser.Error, IOError):
             mgmt = Management()
             mgmt.clear()
 
             msgConf = "{engine_name} Configuration Failed".format(
-                engine_name=config.engine_name)
+                engine_name=config.engine_name
+            )
+            self.logger.info(msgConf, exc_info=True)
             raise RuntimeError(msgConf)
+
+        self.logger.info("Starting vdsm-reg service")
+        deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'start'])
+        sync_mgmt()
+
+        msgConf = "{engine_name} Configuration Successfully Updated".format(
+            engine_name=config.engine_name
+        )
+        self.logger.debug(msgConf)
