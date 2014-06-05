@@ -15,6 +15,11 @@
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
 
+# Main plugin data
 PACKAGE_NAME = '@PACKAGE_NAME@'
 PACKAGE_VERSION = '@PACKAGE_VERSION@'
 engine_name = '@ENGINENAME@'
+
+# Configuration Files
+VDSM_CONFIG = '/etc/vdsm/vdsm.conf'
+VDSM_REG_CONFIG = '/etc/vdsm-reg/vdsm-reg.conf'
