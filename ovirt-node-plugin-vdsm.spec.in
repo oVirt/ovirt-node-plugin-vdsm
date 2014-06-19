@@ -74,6 +74,7 @@ EOF_sysctl
 %files
 %{python_sitelib}/ovirt/node/setup/vdsm
 %{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
+%{_sysconfdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog
