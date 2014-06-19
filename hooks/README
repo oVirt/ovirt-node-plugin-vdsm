@@ -1,2 +1,7 @@
-For information about ovirt-node-upgrade tool, please visit:
+Hooks for ovirt-node-upgrade tool please visit:
+===================================================
 http://www.ovirt.org/Ovirt-node-upgrade
+
+Hooks for every ovirt-node boot
+=================================
+Copy the hook into /etc/ovirt-node/hooks/on-boot
