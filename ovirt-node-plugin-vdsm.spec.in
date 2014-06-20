@@ -3,7 +3,7 @@
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @VERSION@
-Release:        3%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Release:        4%{?BUILD_NUMBER}%{?extra_release}%{?dist}
 Source0:        %{name}-%{version}.tar.gz
 License:        GPLv2+
 Group:          Applications/System
@@ -78,6 +78,9 @@ EOF_sysctl
 %{_sysconfdir}/ovirt-plugins.d
 
 %changelog
+* Fri Jun 20 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.2-4
+- hooks: Add hook for ovirt-node boot
+
 * Thu Jun 05 2014 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.1.2-3
 - engine_page: add exception for ENETUNREACH (BZ#1104009)
 - hooks: Adding hooks for ovirt-node-upgrade (BZ#1079087)
