@@ -16,7 +16,7 @@
 # also available at http://www.gnu.org/copyleft/gpl.html.
 
 preupgradedir = $(libexecdir)/ovirt-node/hooks/pre-upgrade
-onbootdir = ${sysconfdir}/ovirt-node/hooks/on-boot
+onbootdir = $(libexecdir)/ovirt-node/hooks/on-boot
 
 dist_preupgrade_SCRIPTS = \
 	pre-upgrade/01-vdsm \
