@@ -42,6 +42,9 @@ DISTCLEANFILES = $(PACKAGE)-$(VERSION).tar.gz \
 
 DISTCLEANDIRS = autom4te.cache
 
+versiondir=$(sysconfdir)/default
+nodist_version_DATA = version.$(PACKAGE)
+
 rpms: dist
 	rpmbuild $(RPM_FLAGS) -ta $(distdir).tar.gz
 

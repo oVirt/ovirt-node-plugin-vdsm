@@ -2,9 +2,9 @@
 
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
-Version:        @VERSION@
-Release:        0%{?BUILD_NUMBER}%{?extra_release}%{?dist}
-Source0:        %{name}-%{version}.tar.gz
+Version:        @PACKAGE_RPM_VERSION@
+Release:        @PACKAGE_RPM_RELEASE@%{?BUILD_NUMBER}%{?extra_release}%{?dist}
+Source0:        %{name}-@PACKAGE_VERSION@.tar.gz
 License:        GPLv2+
 Group:          Applications/System
 
@@ -39,7 +39,7 @@ Provides kickstart files for generating an oVirt Node ISO image containing
 %{name}.
 
 %prep
-%setup -q
+%setup -q -n %{name}-@PACKAGE_VERSION@
 
 
 %build
@@ -76,6 +76,7 @@ EOF_sysctl
 %{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
 %{_libexecdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
 %{_sysconfdir}/ovirt-plugins.d
+%{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
 * Thu Jun 12 2014 Douglas Schilling Landgraf <dougsland@redhat.com> 2.0.0

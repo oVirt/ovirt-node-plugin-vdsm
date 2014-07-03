@@ -4,6 +4,7 @@ aclocal.m4
 configure
 missing
 install-sh
+version.ovirt-node-plugin-vdsm
 ovirt-node-plugin-vdsm.spec
 ovirt-node-plugin*tar.gz
 autom4te.cache
