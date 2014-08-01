@@ -6,7 +6,7 @@ define([VERSION_SUFFIX], [_master])
 
 AC_INIT([ovirt-node-plugin-vdsm], VERSION_NUMBER[]VERSION_SUFFIX, [node-devel@ovirt.org])
 PACKAGE_RPM_VERSION="VERSION_NUMBER"
-PACKAGE_RPM_RELEASE="0"
+PACKAGE_RPM_RELEASE="1"
 AM_INIT_AUTOMAKE([-Wall -Werror foreign -Wno-portability tar-pax])
 AC_SUBST([PACKAGE_RPM_VERSION])
 AC_SUBST([PACKAGE_RPM_RELEASE])
