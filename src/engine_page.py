@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
+import augeas
 import ConfigParser
 import errno
 import httplib
@@ -113,10 +114,19 @@ def sync_mgmt():
             proto = "https"
         else:
             proto = "http"
-        engine_data = "oVirt Engine %s://%s" % (proto,":".join(server_url))
+        engine_data = '"oVirt Engine %s://%s"' % (proto, ":".join(server_url))
 
-    mgmt = Management()
-    mgmt.update(engine_data, mgmtIface, None)
+    ag = augeas.Augeas()
+    ag.set("/files/etc/default/ovirt/MANAGED_IFNAMES", "\"%s\"" %
+           ''.join(mgmtIface).encode('utf-8'))
+    ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_SERVER", "\"%s\"" %
+           cfg["server"])
+    ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_PORT", "\"%s\"" %
+           cfg["port"])
+    if engine_data is not None:
+        ag.set("/files/etc/default/ovirt/MANAGED_BY",
+               engine_data.encode('utf-8'))
+    ag.save()
 
 
 class Plugin(plugins.NodePlugin):
