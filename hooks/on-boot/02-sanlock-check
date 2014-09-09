@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# 01-sanlock-check - Copyright (C) 2014 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+. /usr/libexec/ovirt-functions
+# Handle sanlock user creation on in place upgrade
+service sanlock stop
+if ! grep -q ^sanlock /etc/group; then
+    unmount_config /etc/group
+    groupadd -g 179 sanlock
+    persist /etc/group
+fi
+if ! grep -q ^sanlock /etc/passwd; then
+    unmount_config /etc/passwd /etc/shadow
+    useradd -u 179 -g sanlock -s /sbin/nologin -d /var/run/sanlock sanlock
+    persist /etc/shadow /etc/passwd
+fi
+service sanlock start

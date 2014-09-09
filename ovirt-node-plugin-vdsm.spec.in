@@ -75,6 +75,7 @@ EOF_sysctl
 %{python_sitelib}/ovirt/node/setup/vdsm
 %{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
 %{_libexecdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
+%{_libexecdir}/ovirt-node/hooks/on-boot/02-sanlock-check
 %{_sysconfdir}/ovirt-plugins.d
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
