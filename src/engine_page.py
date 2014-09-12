@@ -117,6 +117,7 @@ def sync_mgmt():
         engine_data = '"oVirt Engine %s://%s"' % (proto, ":".join(server_url))
 
     ag = augeas.Augeas()
+    ag.set("/augeas/save/copy_if_rename_fails", "")
     ag.set("/files/etc/default/ovirt/MANAGED_IFNAMES", "\"%s\"" %
            ''.join(mgmtIface).encode('utf-8'))
     ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_SERVER", "\"%s\"" %
