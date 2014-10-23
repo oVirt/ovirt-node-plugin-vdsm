@@ -76,10 +76,14 @@ EOF_sysctl
 %{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
 %{_libexecdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
 %{_libexecdir}/ovirt-node/hooks/on-boot/02-sanlock-check
+%{_libexecdir}/ovirt-node/hooks/on-boot/03-vdsm-sebool-config
 %{_sysconfdir}/ovirt-plugins.d
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
+* Thu Oct 23 2014 Fabian Deutsch <fabiand@redhat.com> - 0.4.1
+- Add sebool handler rhbz#1150243 rhbz#1156038
+
 * Thu Jun 12 2014 Douglas Schilling Landgraf <dougsland@redhat.com> 2.0.0
 - Increase the version/release
 

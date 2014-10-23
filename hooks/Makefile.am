@@ -25,4 +25,5 @@ dist_preupgrade_SCRIPTS = \
 dist_onboot_SCRIPTS = \
 	on-boot/01-vdsm-configure \
 	on-boot/02-sanlock-check \
+	on-boot/03-vdsm-sebool-config \
 	$(NULL)
