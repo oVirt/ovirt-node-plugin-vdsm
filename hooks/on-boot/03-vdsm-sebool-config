@@ -12,4 +12,4 @@
 # GNU General Public License for more details.
 
 # The call will fail if SELinux is off, thus ignoring the retval
-vdsm-tool sebool-config || :
+vdsm-tool configure --module sebool || :
