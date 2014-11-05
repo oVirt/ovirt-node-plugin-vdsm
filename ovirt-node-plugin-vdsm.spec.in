@@ -74,13 +74,16 @@ EOF_sysctl
 %files
 %{python_sitelib}/ovirt/node/setup/vdsm
 %{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
+%{_libexecdir}/ovirt-node/hooks/post-upgrade/01-sanlock-check
 %{_libexecdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
-%{_libexecdir}/ovirt-node/hooks/on-boot/02-sanlock-check
-%{_libexecdir}/ovirt-node/hooks/on-boot/03-vdsm-sebool-config
+%{_libexecdir}/ovirt-node/hooks/on-boot/02-vdsm-sebool-config
 %{_sysconfdir}/ovirt-plugins.d
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
+* Wed Nov 04 2014 Fabian Deutsch <fabiand@redhat.com> - 0.4.2
+- Move sanlock chek to post-upgrade hook rhbz#1156369
+
 * Thu Oct 23 2014 Fabian Deutsch <fabiand@redhat.com> - 0.4.1
 - Add sebool handler rhbz#1150243 rhbz#1156038
 
