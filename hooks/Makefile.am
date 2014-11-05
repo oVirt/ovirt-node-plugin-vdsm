@@ -16,14 +16,18 @@
 # also available at http://www.gnu.org/copyleft/gpl.html.
 
 preupgradedir = $(libexecdir)/ovirt-node/hooks/pre-upgrade
+postupgradedir = $(libexecdir)/ovirt-node/hooks/post-upgrade
 onbootdir = $(libexecdir)/ovirt-node/hooks/on-boot
 
 dist_preupgrade_SCRIPTS = \
 	pre-upgrade/01-vdsm \
 	$(NULL)
 
+dist_postupgrade_SCRIPTS = \
+	post-upgrade/01-sanlock-check \
+	$(NULL)
+
 dist_onboot_SCRIPTS = \
 	on-boot/01-vdsm-configure \
-	on-boot/02-sanlock-check \
-	on-boot/03-vdsm-sebool-config \
+	on-boot/02-vdsm-sebool-config \
 	$(NULL)
