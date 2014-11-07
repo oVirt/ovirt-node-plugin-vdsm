@@ -30,4 +30,5 @@ dist_postupgrade_SCRIPTS = \
 dist_onboot_SCRIPTS = \
 	on-boot/01-vdsm-configure \
 	on-boot/02-vdsm-sebool-config \
+	on-boot/90-start-vdsm \
 	$(NULL)
