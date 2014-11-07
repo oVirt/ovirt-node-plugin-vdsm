@@ -198,8 +198,8 @@ class Plugin(plugins.NodePlugin):
                 ui.KeywordLabel("vdsm_cfg.cert", "Certificate Status: "),
                 ui.Divider("divider[1]"),
                 ui.Label("vdsm_cfg.password._label",
-                         "Optional password for adding Node through oVirt " +
-                         "Engine UI"),
+                         "Optional password for adding Node through " +
+                         str(config.engine_name)),
                 ui.Label("vdsm_cfg.password._label2",
                          "Note: Setting password will enable SSH daemon"),
                 ui.ConfirmedEntry("vdsm_cfg.password", "Password:", True),
