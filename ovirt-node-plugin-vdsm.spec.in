@@ -1,5 +1,9 @@
 %define is_f19 %(test "0%{?fedora}" -eq "019" && echo 1 || echo 0)
 
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
+%global with_systemd 1
+%endif
+
 Summary:        A plugin to make oVirt Node installs compatible with oVirt Engine and vdsm
 Name:           ovirt-node-plugin-vdsm
 Version:        @PACKAGE_RPM_VERSION@
@@ -50,6 +54,15 @@ Provides kickstart files for generating an oVirt Node ISO image containing
 make install DESTDIR=%{buildroot}
 
 %post
+if [ "$1" -eq 1 ] ; then
+%if 0%{?with_systemd}
+    /bin/systemctl enable vdsm-reg.service >/dev/null 2>&1 || :
+    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+%else
+    /sbin/chkconfig --add vdsm-reg
+%endif
+fi
+
 # reserve vdsm port 54321
 augtool << \EOF_sysctl
 set /files/etc/sysctl.conf/net.ipv4.ip_local_reserved_ports 54321
