@@ -114,7 +114,11 @@ def sync_mgmt():
             proto = "https"
         else:
             proto = "http"
-        engine_data = '"oVirt Engine %s://%s"' % (proto, ":".join(server_url))
+        engine_data = '"%s %s://%s"' % (
+            config.engine_name,
+            proto,
+            ":".join(server_url)
+        )
 
     ag = augeas.Augeas()
     ag.set("/augeas/save/copy_if_rename_fails", "")
@@ -467,11 +471,13 @@ class VDSM(NodeConfigFileSection):
 
 
 class CannotFindEngine(utils.Transaction.Element):
-    title = "Trying to connect with oVirt Engine.."
+    title = "Trying to connect with {engine_name}..".format(
+        engine_name=config.engine_name
+    )
 
     def commit(self):
         raise RuntimeError(
-            "Cannot connect with oVirt Engine!"
+            "Cannot connect with management system!"
         )
 
 
