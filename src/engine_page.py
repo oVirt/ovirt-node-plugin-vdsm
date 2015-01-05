@@ -107,18 +107,23 @@ def sync_mgmt():
         else:
             raise
 
-    if cfg["server"] is not None:
+    if cfg["server"] is not None and cfg["server"] != "None" and \
+            cfg["server"] != "":
         server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
         port, sslPort = compatiblePort(cfg["port"])
         if sslPort:
             proto = "https"
         else:
             proto = "http"
+
         engine_data = '"%s %s://%s"' % (
             config.engine_name,
             proto,
             ":".join(server_url)
         )
+
+    if cfg['server'] == 'None' or cfg['server'] is None: cfg['server'] = ""
+    if cfg['port'] == 'None': cfg['port'] = "443"
 
     ag = augeas.Augeas()
     ag.set("/augeas/save/copy_if_rename_fails", "")
@@ -128,7 +133,8 @@ def sync_mgmt():
            cfg["server"])
     ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_PORT", "\"%s\"" %
            cfg["port"])
-    if engine_data is not None:
+
+    if engine_data is not None and engine_data != "":
         ag.set("/files/etc/default/ovirt/MANAGED_BY",
                engine_data.encode('utf-8'))
     ag.save()
