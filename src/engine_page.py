@@ -293,8 +293,9 @@ class Plugin(plugins.NodePlugin):
 
         elif changes.contains_any(["action.cert.reject"]):
             model.update(cert_path=None)
-            utils.fs.Config().unpersist(self._cert_path)
-            if self._cert_path is not None:
+            if self._cert_path is not None and \
+                    os.path.exists(self._cert_path):
+                utils.fs.Config().unpersist(self._cert_path)
                 os.unlink(self._cert_path)
             self._fp_dialog.close()
             self._server, self._port, self._cert_path = None, None, None
