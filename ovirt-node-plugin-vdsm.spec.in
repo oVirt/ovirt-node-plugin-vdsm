@@ -96,6 +96,9 @@ EOF_sysctl
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
+* Mon Jan 19 2015 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.2.2-3
+- package vdsm-hook-ethtool-options in RHEV-H (BZ#1183626)
+
 * Fri Nov 07 2014 Fabian Deutsch <fabiand@redhat.com> - 0.4.3
 - Explicitly start vdsmd again rhbz#1156369
 
