@@ -96,6 +96,9 @@ EOF_sysctl
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
+* Tue Jan 27 2015 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.2.2-4
+-  engine_page: Add validation for engine_data
+
 * Mon Jan 19 2015 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.2.2-3
 - package vdsm-hook-ethtool-options in RHEV-H (BZ#1183626)
 
