@@ -74,6 +74,10 @@ def update_conf(conf_file, session, option, value):
     return True
 
 
+def validate_server(server):
+    """Validate server str if user provided ':' port schema"""
+    return True if ":" in server else False
+
 def sync_mgmt():
     """Guess mgmt interface and update TUI config
        FIXME: Autoinstall should write MANAGED_BY and MANAGED_IFNAMES
@@ -107,6 +111,9 @@ def sync_mgmt():
         else:
             raise
 
+    if cfg["server"] is not None and validate_server(cfg["server"]):
+        cfg["server"], cfg["port"] = cfg["server"].split(":")
+
     if cfg["server"] is not None and cfg["server"] != "None" and \
             cfg["server"] != "":
         server_url = [unicode(info) for info in [cfg["server"], cfg["port"]] if info]
@@ -123,7 +130,7 @@ def sync_mgmt():
         )
 
     if cfg['server'] == 'None' or cfg['server'] is None: cfg['server'] = ""
-    if cfg['port'] == 'None': cfg['port'] = "443"
+    if cfg['port'] == 'None': cfg['port'] = config.ENGINE_PORT
 
     ag = augeas.Augeas()
     ag.set("/augeas/save/copy_if_rename_fails", "")
@@ -161,7 +168,7 @@ class Plugin(plugins.NodePlugin):
         cfg = VDSM().retrieve()
         model = {
             "vdsm_cfg.address": cfg["server"] or "",
-            "vdsm_cfg.port": cfg["port"] or "443",
+            "vdsm_cfg.port": cfg["port"] or config.ENGINE_PORT,
             "vdsm_cfg.cert": "Verified"
             if utils.fs.Config().exists(cfg["cert_path"]) else "N/A",
             "vdsm_cfg.password": "",
@@ -170,7 +177,7 @@ class Plugin(plugins.NodePlugin):
 
     def validators(self):
 
-        return {"vdsm_cfg.address": valid.FQDNOrIPAddress() | valid.Empty(),
+        return {"vdsm_cfg.address": valid.Text() | valid.Empty(),
                 "vdsm_cfg.port": valid.Port(),
                 "vdsm_cfg.password": valid.Text(),
                 }
@@ -202,8 +209,8 @@ class Plugin(plugins.NodePlugin):
                     "header[0]",
                     header_menu
                 ),
-                ui.Entry("vdsm_cfg.address", "Management Server:"),
-                ui.Entry("vdsm_cfg.port", "Management Server Port:"),
+                ui.Entry("vdsm_cfg.address",
+                          str(config.engine_name) + " Address"),
                 ui.Divider("divider[0]"),
                 ui.KeywordLabel("vdsm_cfg.cert", "Certificate Status: "),
                 ui.Divider("divider[1]"),
@@ -241,9 +248,12 @@ class Plugin(plugins.NodePlugin):
         self.logger.debug("Changes: %s" % changes)
         self.logger.debug("Effective Model: %s" % effective_model)
 
-        cfg_port = effective_model["vdsm_cfg.port"]
-        cfg_server = effective_model["vdsm_cfg.address"]
-        compat, ssl_port = compatiblePort(cfg_port)
+        if validate_server(effective_model["vdsm_cfg.address"]):
+            self._server, self._port = effective_model["vdsm_cfg.address"].split(":")
+        else:
+            self._server = effective_model["vdsm_cfg.address"]
+            self._port = config.ENGINE_PORT
+
         buttons = [ui.Button("action.cert.accept", "Accept"),
                    ui.Button("action.cert.reject", "Reject & Remove")]
 
@@ -253,86 +263,78 @@ class Plugin(plugins.NodePlugin):
             )
         )
 
-        if cfg_server and ssl_port and \
-                effective_changes.contains_any(["action.register"]):
+        compat, ssl_port = compatiblePort(self._port)
+        if self._server and effective_model["action.register"]:
             title_msg = "\n"
             try:
-                port = findPort(cfg_server, cfg_port)
-                self._server, self._port = cfg_server, port
-                self._cert_path, fingerprint = retrieveCetrificate(
-                    cfg_server,
-                    port
-                )
+                self.logger.debug("find port %s %s" % (self._server, self._port))
+                self._port = findPort(self._server, self._port)
 
+                if ssl_port:
+                   self._cert_path, fingerprint = retrieveCetrificate(
+                       self._server,
+                       self._port
+                   )
                 if changes.contains_any(["vdsm_cfg.password"]):
                     title_msg = "\nSetting root password and starting sshd\n\n"
                     SetRootPassword(
                         password=effective_model["vdsm_cfg.password"]
                     ).commit()
 
-                title_msg += "Please review the following SSL fingerprint" \
-                             " from Engine:\n"
+                if ssl_port:
+                    title_msg += "Please review the following SSL fingerprint" \
+                                 " from Engine:\n"
             except Exception as e:
-                fingerprint = str(e)
+                if ssl_port:
+                     fingerprint = str(e)
                 title_msg = "\n"
                 buttons = [ui.Button("action.cert.reject", "Close")]
+                txs += [CannotFindEngine()]
+                self._server = ""
 
-            self._fp_dialog = ui.Dialog("dialog.engine.fp", "{engine_name} "
-                                        "Fingerprint".format(
-                                            engine_name=config.engine_name
-                                        ),
-                                        [ui.Label(
-                                            "dialog.label[0]",
-                                            title_msg),
-                                         ui.Label("dialog.fp", fingerprint)])
+            if ssl_port:
+                self._fp_dialog = ui.Dialog("dialog.engine.fp", "{engine_name} "
+                                            "Fingerprint".format(
+                                                engine_name=config.engine_name
+                                            ),
+                                            [ui.Label(
+                                                "dialog.label[0]",
+                                                title_msg),
+                                             ui.Label("dialog.fp", fingerprint)])
 
-            self._fp_dialog.buttons = buttons
-            return self._fp_dialog
+                self._fp_dialog.buttons = buttons
+                return self._fp_dialog
 
-        elif effective_model.contains_any(["action.cert.accept"]):
+        if effective_model["action.cert.accept"]:
             self._fp_dialog.close()
             model.update(self._server, self._port, self._cert_path)
-            utils.fs.Config().persist(self._cert_path)
-            txs += [ActivateVDSM(effective_model["vdsm_cfg.address"],
-                                 effective_model["vdsm_cfg.port"])]
-            self._server, self._port, self._cert_path = None, None, None
+            if self._cert_path is not None and \
+                    os.path.exists(self._cert_path):
+                utils.fs.Config().persist(self._cert_path)
 
-        elif changes.contains_any(["action.cert.reject"]):
+        if effective_model["action.cert.reject"]:
             model.update(cert_path=None)
             if self._cert_path is not None and \
                     os.path.exists(self._cert_path):
                 utils.fs.Config().unpersist(self._cert_path)
                 os.unlink(self._cert_path)
-            self._fp_dialog.close()
-            self._server, self._port, self._cert_path = None, None, None
+            return self._fp_dialog.close()
 
         if changes.contains_any(["vdsm_cfg.password"]):
             txs += [SetRootPassword(
                 password=effective_model["vdsm_cfg.password"]
             )]
 
-        if effective_changes.contains_any(["action.register"]) and \
-                effective_model["vdsm_cfg.address"] != "":
-            self.logger.debug("Connecting to engine")
-
+        if self._server is not None and self._server != "":
             try:
-                effective_model["vdsm_cfg.port"] = findPort(cfg_server,
-                                                            cfg_port)
-                txs += [
-                    ActivateVDSM(
-                        effective_model["vdsm_cfg.address"],
-                        effective_model["vdsm_cfg.port"]
-                    )
-                ]
+                txs += [ActivateVDSM(self._server, self._port)]
             except Exception as e:
                 txs += [CannotFindEngine()]
 
-            model.update(
-                server=effective_model["vdsm_cfg.address"],
-                port=effective_model["vdsm_cfg.port"]
-            )
-            self._server = effective_model["vdsm_cfg.address"]
-            self._port = effective_model["vdsm_cfg.port"]
+        if self._server is None:
+            txs += [CannotFindEngine()]
+
+        model.update(server=self._server, port=self._port)
 
         if len(txs) > 0:
             progress_dialog = ui.TransactionProgressDialog("dialog.txs", txs,
@@ -473,7 +475,12 @@ class VDSM(NodeConfigFileSection):
 
     @NodeConfigFileSection.map_and_update_defaults_decorator
     def update(self, server, port, cert_path):
-        (valid.Empty(or_none=True) | valid.FQDNOrIPAddress())(server)
+        if validate_server(server):
+            server, port = server.split(":")
+        else:
+            port = config.ENGINE_PORT
+
+        (valid.Empty(or_none=True) | valid.Text())(server)
         (valid.Empty(or_none=True) | valid.Port())(port)
 
 
@@ -514,8 +521,11 @@ class ActivateVDSM(utils.Transaction.Element):
             self.create_vdsm_conf()
             self.logger.info("Agent configuration files created.")
 
-        self.server = server
-        self.port = port
+        if validate_server(server):
+            self.server, self.port = server.split(":")
+        else:
+            self.server = server
+            self.port = port
 
     def cert_validator(self):
         cert_path = VDSM().retrieve()["cert_path"]
