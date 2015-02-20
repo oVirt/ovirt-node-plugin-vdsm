@@ -23,6 +23,8 @@ import ConfigParser
 import errno
 import httplib
 import os
+import subprocess
+import shlex
 import sys
 import traceback
 
@@ -43,6 +45,18 @@ Configure Engine
 
 LOGGER = log.getLogger(__name__)
 
+
+def execute_cmd(cmd, env_shell=False):
+    cmd = subprocess.Popen(shlex.split(cmd),
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE,
+                           shell=env_shell)
+
+    output, err = cmd.communicate()
+    if cmd.returncode != 0:
+        LOGGER.debug("Cannot execute cmd [%s]" % cmd)
+
+    return cmd.returncode
 
 def update_conf(conf_file, session, option, value):
     """
@@ -538,6 +552,7 @@ class ActivateVDSM(utils.Transaction.Element):
         Config().persist(config.VDSM_CONFIG)
 
     def commit(self):
+        _LOCK_FILE_VDSM_REG = "/var/lock/subsys/vdsm-reg"
         self.logger.info("Connecting to VDSM server")
 
         if not self.cert_validator():
@@ -555,7 +570,9 @@ class ActivateVDSM(utils.Transaction.Element):
         # Stopping vdsm-reg may fail but its ok - its in the case when the
         # menus are run after installation
         self.logger.info("Stopping vdsm-reg service")
-        deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'stop'])
+        if os.path.exists(_LOCK_FILE_VDSM_REG):
+            os.remove(_LOCK_FILE_VDSM_REG)
+        execute_cmd('killall -9 vdsm-reg-setup')
 
         try:
             update_conf(
@@ -582,7 +599,8 @@ class ActivateVDSM(utils.Transaction.Element):
             raise RuntimeError(msgConf)
 
         self.logger.info("Starting vdsm-reg service")
-        deployUtil._logExec([constants.EXT_SERVICE, 'vdsm-reg', 'start'])
+        execute_cmd("/usr/share/vdsm-reg/vdsm-reg-setup")
+        execute_cmd("touch %s" % _LOCK_FILE_VDSM_REG)
         sync_mgmt()
 
         msgConf = "{engine_name} Configuration Successfully Updated".format(
