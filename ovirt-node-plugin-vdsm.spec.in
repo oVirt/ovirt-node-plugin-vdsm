@@ -96,6 +96,9 @@ EOF_sysctl
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
+* Fri Feb 20 2015 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.2.2-5
+- engine_page: Replace deployUtil._logExec (BZ#1192160)
+
 * Tue Jan 27 2015 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.2.2-4
 -  engine_page: Add validation for engine_data
 
