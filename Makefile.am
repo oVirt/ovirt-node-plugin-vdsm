@@ -24,7 +24,8 @@ SHELL := /bin/bash
 
 
 SUBDIRS = \
-  conf \
+	conf \
+	autoinstall \
 	hooks \
 	src \
 	recipe

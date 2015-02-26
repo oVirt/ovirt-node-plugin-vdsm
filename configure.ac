@@ -17,6 +17,7 @@ AM_PATH_PYTHON
 AC_CONFIG_FILES([Makefile
                 src/Makefile
                 src/config.py
+                autoinstall/Makefile
                 conf/Makefile
                 hooks/Makefile
                 recipe/Makefile

@@ -92,6 +92,8 @@ EOF_sysctl
 %{_libexecdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
 %{_libexecdir}/ovirt-node/hooks/on-boot/02-vdsm-sebool-config
 %{_libexecdir}/ovirt-node/hooks/on-boot/90-start-vdsm
+%{_sysconfdir}/ovirt-commandline.d/autoreg-args
+%{_sysconfdir}/ovirt-config-boot.d/autoreg.py*
 %{_sysconfdir}/ovirt-plugins.d
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
