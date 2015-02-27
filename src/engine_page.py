@@ -224,7 +224,7 @@ class Plugin(plugins.NodePlugin):
                     header_menu
                 ),
                 ui.Entry("vdsm_cfg.address",
-                          str(config.engine_name) + " Address"),
+                          str(config.engine_name) + " Address(or ip:port):"),
                 ui.Divider("divider[0]"),
                 ui.KeywordLabel("vdsm_cfg.cert", "Certificate Status: "),
                 ui.Divider("divider[1]"),

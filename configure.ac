@@ -10,7 +10,7 @@ PACKAGE_RPM_RELEASE="0.0.$(echo VERSION_SUFFIX | sed 's/^_//')"
 AM_INIT_AUTOMAKE([-Wall -Werror foreign -Wno-portability tar-pax])
 AC_SUBST([PACKAGE_RPM_VERSION])
 AC_SUBST([PACKAGE_RPM_RELEASE])
-AC_SUBST([ENGINENAME], ['oVirt Engine'])
+AC_SUBST([ENGINENAME], ['Engine'])
 
 AM_PATH_PYTHON
 
