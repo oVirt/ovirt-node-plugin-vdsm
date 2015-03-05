@@ -118,12 +118,14 @@ def sync_mgmt():
         elif err.errno == errno.ENETUNREACH:
             LOGGER.debug("Network is unreachable to reach VDSM", exc_info=True)
         else:
-            raise
+            LOGGER.error("Catching exception:", exc_info=True)
+    except KeyError as err:
+        LOGGER.error("Cannot collect network data!", exc_info=True)
     except Exception as err:
         if 'No permission to read file:' in str(err):
             LOGGER.debug("pem files not available yet!", exc_info=True)
         else:
-            raise
+            LOGGER.error("Catching exception:", exc_info=True)
 
     if cfg["server"] is not None and validate_server(cfg["server"]):
         cfg["server"], cfg["port"] = cfg["server"].split(":")
