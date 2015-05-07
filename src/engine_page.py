@@ -61,6 +61,32 @@ def validate_server(server):
     return True if ":" in server else False
 
 
+
+def _hack_to_workaround_pyaug_issues(mgmtIface, cfg, engine_data):
+    """Normally we must not use the Augeas() class directly.
+    Instead we interact with the /etc/default/ovirt class through
+    the ovirt.node.config.defaults module and it's classes.
+    However, this hack is needed to workaround the problem that
+    the augeas object is cachign some values, and will flush them to disk
+    occasionally.
+    This can only be fixed by removing all calls to augeas
+    or by a different solution.
+    """
+    ag = augeas.Augeas()
+    ag.set("/augeas/save/copy_if_rename_fails", "")
+    ag.set("/files/etc/default/ovirt/MANAGED_IFNAMES", "\"%s\"" %
+           ''.join(mgmtIface).encode('utf-8'))
+    ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_SERVER", "\"%s\"" %
+           cfg["server"])
+    ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_PORT", "\"%s\"" %
+           cfg["port"])
+
+    if engine_data is not None and engine_data != "":
+        ag.set("/files/etc/default/ovirt/MANAGED_BY",
+               engine_data.encode('utf-8'))
+    ag.save()
+
+
 def sync_mgmt():
     """Guess mgmt interface and update TUI config
        FIXME: Autoinstall should write MANAGED_BY and MANAGED_IFNAMES
@@ -121,19 +147,8 @@ def sync_mgmt():
     if cfg['port'] == 'None':
         cfg['port'] = config.ENGINE_PORT
 
-    ag = augeas.Augeas()
-    ag.set("/augeas/save/copy_if_rename_fails", "")
-    ag.set("/files/etc/default/ovirt/MANAGED_IFNAMES", "\"%s\"" %
-           ''.join(mgmtIface).encode('utf-8'))
-    ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_SERVER", "\"%s\"" %
-           cfg["server"])
-    ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_PORT", "\"%s\"" %
-           cfg["port"])
-
-    if engine_data is not None and engine_data != "":
-        ag.set("/files/etc/default/ovirt/MANAGED_BY",
-               engine_data.encode('utf-8'))
-    ag.save()
+    # Update the /etc/defaults/ovirt file
+    _hack_to_workaround_pyaug_issues(mgmtIface, cfg, engine_data)
 
 
 class Plugin(plugins.NodePlugin):
