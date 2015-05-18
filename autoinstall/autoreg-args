@@ -2,4 +2,5 @@ management_server
 management_server_port
 management_server_fingerprint
 rhevm_admin_password
+engine_admin_password
 ovirt_vdsm_disable
