@@ -97,11 +97,9 @@ EOF_sysctl
 %license COPYING
 %{python_sitelib}/ovirt/node/setup/vdsm
 %{_libexecdir}/ovirt-node/hooks/pre-upgrade/01-vdsm
-%{_libexecdir}/ovirt-node/hooks/pre-upgrade/03-persist-multipath-wwids
 %{_libexecdir}/ovirt-node/hooks/post-upgrade/01-sanlock-check
 %{_libexecdir}/ovirt-node/hooks/on-boot/01-vdsm-configure
 %{_libexecdir}/ovirt-node/hooks/on-boot/02-vdsm-sebool-config
-%{_libexecdir}/ovirt-node/hooks/on-boot/03-persist-multipath-wwids
 %{_libexecdir}/ovirt-node/hooks/on-boot/90-start-vdsm
 %{_sysconfdir}/ovirt-plugins.d
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
