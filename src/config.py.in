@@ -20,7 +20,3 @@ PACKAGE_NAME = '@PACKAGE_NAME@'
 PACKAGE_VERSION = '@PACKAGE_VERSION@'
 engine_name = '@ENGINENAME@'
 ENGINE_PORT = '443'
-
-# Configuration Files
-VDSM_CONFIG = '/etc/vdsm/vdsm.conf'
-VDSM_REG_CONFIG = '/etc/vdsm-reg/vdsm-reg.conf'
