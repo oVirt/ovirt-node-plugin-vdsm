@@ -15,6 +15,6 @@
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
 
-dist_sbin_SCRIPTS = \
-	ovirt-node-plugin-vdsm-autoreg \
+EXTRA_DIST = \
+	ovirt-node-plugin-vdsm.service
 	$(NULL)

@@ -28,6 +28,7 @@ SUBDIRS = \
 	autoinstall \
 	hooks \
 	src \
+	systemd \
 	recipe
 
 EXTRA_DIST = \

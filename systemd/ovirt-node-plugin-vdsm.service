@@ -1,0 +1,15 @@
+[Unit]
+Description=oVirt Node Plugin VDSM
+After=network.target network-online.target supervdsmd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/sbin/ovirt-node-plugin-vdsm-autoreg
+Nice=-20
+User=root
+Group=root
+PermissionsStartOnly=true
+
+[Install]
+WantedBy=multi-user.target
