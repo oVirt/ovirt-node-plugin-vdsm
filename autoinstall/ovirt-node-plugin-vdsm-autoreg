@@ -25,12 +25,12 @@ from ovirt.node.config.defaults import SSH
 from ovirt.node.setup.vdsm import engine_page
 from ovirt.node.utils import system
 
+from systemd import journal
 
 class AutoRegister(object):
 
     def __init__(self):
-        # Log: /var/log/ovirt-node.log
-        self.logger = log.getLogger(__name__)
+        self.logger = self._set_logger()
 
         # For autoinstall using check-fqdn = False as previous autoinstall
         # doesn't check CA cert
@@ -39,6 +39,17 @@ class AutoRegister(object):
         self.kargs = None
         self.mserver = None
         self.mserver_port = None
+
+    def _set_logger():
+        """
+        Set the logging schema
+        """
+        log = logging.getLogger(__name__)
+        log.propagate = False
+        log.setLevel(logging.DEBUG)
+        log.addHandler(
+            journal.JournalHandler(SYSLOG_IDENTIFIER='ovirt-node-plugin-vdsm')
+        )
 
     def _is_karg_set(self, key, debug=True):
         """
