@@ -18,6 +18,8 @@
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
 import sys
+import logging
+
 import ovirtnode.ovirtfunctions as _functions
 
 from ovirt.node import log, utils
@@ -40,7 +42,7 @@ class AutoRegister(object):
         self.mserver = None
         self.mserver_port = None
 
-    def _set_logger():
+    def _set_logger(self):
         """
         Set the logging schema
         """
@@ -50,6 +52,7 @@ class AutoRegister(object):
         log.addHandler(
             journal.JournalHandler(SYSLOG_IDENTIFIER='ovirt-node-plugin-vdsm')
         )
+        return log
 
     def _is_karg_set(self, key, debug=True):
         """
