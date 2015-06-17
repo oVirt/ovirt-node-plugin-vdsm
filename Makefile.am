@@ -44,19 +44,33 @@ DISTCLEANFILES = $(PACKAGE)-$(VERSION).tar.gz \
 
 DISTCLEANDIRS = autom4te.cache
 
+TMPREPOS = tmp.repos
+RPM_FLAGS := --define="_topdir `pwd`/$(TMPREPOS)"
+
 versiondir=$(sysconfdir)/default
 nodist_version_DATA = version.$(PACKAGE)
 
-rpms: dist
-	rpmbuild $(RPM_FLAGS) -ta $(distdir).tar.gz
-
 srpms: dist
-	rpmbuild $(RPM_FLAGS) -ts $(distdir).tar.gz
+	rm -rf "$(TMPREPOS)"
+	mkdir -vp $(TMPREPOS)/{SPECS,RPMS,SRPMS,SOURCES}
+	rpmbuild $(RPM_FLAGS) -ta $(distdir).tar.gz
+	@echo
+	@echo "srpm available at '$(TMPREPOS)'"
+	@echo
+
+rpms: srpms
+	rpmbuild $(RPM_FLAGS) --rebuild "$(TMPREPOS)"/SRPMS/*.src.rpm
+	@echo
+	@echo "rpm available at '$(TMPREPOS)'"
+	@echo
 
 publish: rpms
+	$(MAKE)
+	$(MAKE) create-repo
+
+create-repo:
 	mkdir -p $(OVIRT_CACHE_DIR)
-	rsync -aq $(shell rpm --eval '%{_rpmdir}')/ $(OVIRT_CACHE_DIR)/ovirt/
-	rsync -aq $(shell rpm --eval '%{_srcrpmdir}')/ $(OVIRT_CACHE_DIR)/ovirt/src
+	rsync -qa $(TMPREPOS) /$(OVIRT_CACHE_DIR)/ovirt
 	createrepo $(OVIRT_CACHE_DIR)/ovirt
 
 iso: publish
