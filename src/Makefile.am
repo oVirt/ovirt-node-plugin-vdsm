@@ -21,20 +21,13 @@ localboottriggerdir=$(sysconfdir)/ovirt-config-boot.d
 #
 # newt tui
 #
+
+include Makefile.check
+
+PYTHONSOURCES:=$(shell find . -wholename '*.py')
+
 pyovirtsetupdir = $(pythondir)/ovirt/node/setup/vdsm
 pyovirtsetup_PYTHON = \
   engine_page.py \
   __init__.py \
   config.py
-
-# Requires python-pep8 package (Fedora)
-check-local: check-local-pep8
-
-check-local-pep8:
-	find $(srcdir) -name \*.py | sort | uniq | xargs pep8 --repeat --statistics --count
-
-check-local-doctest:
-	find $(srcdir) -name \*.py | sort | uniq | xargs python -m doctest -v
-
-clean-local:
-	rm -f config.py

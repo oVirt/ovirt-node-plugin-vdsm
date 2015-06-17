@@ -61,7 +61,6 @@ def validate_server(server):
     return True if ":" in server else False
 
 
-
 def _hack_to_workaround_pyaug_issues(mgmtIface, cfg, engine_data):
     """Normally we must not use the Augeas() class directly.
     Instead we interact with the /etc/default/ovirt class through
