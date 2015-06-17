@@ -1,0 +1,8 @@
+automake
+autoconf
+make
+git
+python
+python-devel
+python-pep8
+pyflakes
