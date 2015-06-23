@@ -25,6 +25,7 @@ import subprocess
 import shlex
 
 from . import config
+from distutils.util import strtobool
 from socket import error as socket_error
 
 from ovirt.node import plugins, valid, ui, utils, log
@@ -76,9 +77,9 @@ def _hack_to_workaround_pyaug_issues(mgmtIface, cfg, engine_data):
     ag.set("/files/etc/default/ovirt/MANAGED_IFNAMES", "\"%s\"" %
            ''.join(mgmtIface).encode('utf-8'))
     ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_SERVER", "\"%s\"" %
-           cfg["server"])
+           cfg["mserver"])
     ag.set("/files/etc/default/ovirt/OVIRT_MANAGEMENT_PORT", "\"%s\"" %
-           cfg["port"])
+           cfg["mport"])
 
     if engine_data is not None and engine_data != "":
         ag.set("/files/etc/default/ovirt/MANAGED_BY",
@@ -92,7 +93,7 @@ def sync_mgmt():
        into /etc/defaults/ovirt
     """
     engine_data = None
-    cfg = VDSM().retrieve()
+    cfg = NodeManagement().retrieve()
 
     mgmtIface = []
 
@@ -121,15 +122,15 @@ def sync_mgmt():
         else:
             LOGGER.error("Catching exception:", exc_info=True)
 
-    if cfg["server"] is not None and validate_server(cfg["server"]):
-        cfg["server"], cfg["port"] = cfg["server"].split(":")
+    if cfg["mserver"] is not None and validate_server(cfg["mserver"]):
+        cfg["mserver"], cfg["mport"] = cfg["mserver"].split(":")
 
-    if cfg["server"] is not None and cfg["server"] != "None" and \
-            cfg["server"] != "":
-        server_url = [unicode(info) for info in [cfg["server"],
-                                                 cfg["port"]] if info]
+    if cfg["mserver"] is not None and cfg["mserver"] != "None" and \
+            cfg["mserver"] != "":
+        server_url = [unicode(info) for info in [cfg["mserver"],
+                                                 cfg["mport"]] if info]
 
-        port, sslPort = compatiblePort(cfg["port"])
+        port, sslPort = compatiblePort(cfg["mport"])
         if sslPort:
             proto = "https"
         else:
@@ -141,10 +142,10 @@ def sync_mgmt():
             ":".join(server_url)
         )
 
-    if cfg['server'] == 'None' or cfg['server'] is None:
-        cfg['server'] = ""
-    if cfg['port'] == 'None':
-        cfg['port'] = config.ENGINE_PORT
+    if cfg['mserver'] == 'None' or cfg['mserver'] is None:
+        cfg['mserver'] = ""
+    if cfg['mport'] == 'None':
+        cfg['mport'] = config.ENGINE_PORT
 
     # Update the /etc/defaults/ovirt file
     _hack_to_workaround_pyaug_issues(mgmtIface, cfg, engine_data)
@@ -168,10 +169,10 @@ class Plugin(plugins.NodePlugin):
         return 100
 
     def model(self):
-        cfg = VDSM().retrieve()
+        cfg = NodeManagement().retrieve()
         model = {
-            "vdsm_cfg.address": cfg["server"] or "",
-            "vdsm_cfg.port": cfg["port"] or config.ENGINE_PORT,
+            "vdsm_cfg.address": cfg["mserver"] or "",
+            "vdsm_cfg.port": cfg["mport"] or config.ENGINE_PORT,
             "vdsm_cfg.password": "",
             "check.fqdn": True
         }
@@ -244,7 +245,7 @@ class Plugin(plugins.NodePlugin):
             self._model.update(changes)
 
     def on_merge(self, effective_changes):
-        model = VDSM()
+        model = NodeManagement()
         changes = Changeset(self.pending_changes(False))
         effective_model = Changeset(self.model())
         effective_model.update(effective_changes)
@@ -269,7 +270,6 @@ class Plugin(plugins.NodePlugin):
                 self._port = config.ENGINE_PORT
 
             cfqdn = effective_model["check.fqdn"]
-            self.logger.debug("DOUG cfqdn %s" % cfqdn)
             txs += [NodeRegister(self._server, self._port, cfqdn)]
 
         model.update(server=self._server, port=self._port)
@@ -311,30 +311,65 @@ def compatiblePort(portNumber):
 #
 # Functions and classes to support the UI
 #
-class VDSM(NodeConfigFileSection):
-    """Class to handle VDSM configuration in /etc/default/ovirt file
-
-    >>> from ovirt.node.config.defaults import ConfigFile, SimpleProvider
-    >>> fn = "/tmp/cfg_dummy"
-    >>> cfgfile = ConfigFile(fn, SimpleProvider)
-    >>> n = VDSM(cfgfile)
-    >>> n.update("engine.example.com", "1234", "p")
-    >>> sorted(n.retrieve().items())
-    [('cert_path', 'p'), ('port', '1234'), ('server', 'engine.example.com')]
+class NodeManagement(NodeConfigFileSection):
+    """
+    Return the below keys from /etc/default/ovirt
+        OVIRT_MANAGEMENT_SERVER
+        OVIRT_MANAGEMENT_PORT
+        OVIRT_MANAGEMENT_CERTIFICATE
+        OVIRT_MANAGEMENT_SERVER_FINGERPRINT
     """
     keys = ("OVIRT_MANAGEMENT_SERVER",
             "OVIRT_MANAGEMENT_PORT",
-            "OVIRT_MANAGEMENT_CERTIFICATE")
+            "OVIRT_MANAGEMENT_CERTIFICATE",
+            "OVIRT_MANAGEMENT_SERVER_FINGERPRINT",)
 
     @NodeConfigFileSection.map_and_update_defaults_decorator
-    def update(self, server, port, cert_path):
-        if validate_server(server):
-            server, port = server.split(":")
+    def update(self, mserver, mport, cert_path, fprint):
+        if validate_server(mserver):
+            mserver, mport = mserver.split(":")
         else:
-            port = config.ENGINE_PORT
+            mport = config.ENGINE_PORT
 
-        (valid.Empty(or_none=True) | valid.Text())(server)
-        (valid.Empty(or_none=True) | valid.Port())(port)
+        (valid.Empty(or_none=True) | valid.Text())(mserver)
+        (valid.Empty(or_none=True) | valid.Port())(mport)
+
+    def retrieve(self):
+        cfg = dict(NodeConfigFileSection.retrieve(self))
+
+        # Replace the string 'None' to None type
+        for item in cfg:
+            if cfg[item] == 'None':
+                cfg[item] = None
+
+        if cfg['mserver'] is not None and ":" in cfg['mserver']:
+            cfg['mserver'], cfg['mport'] = cfg['mserver'].split(":")
+
+        return cfg
+
+
+class RegistrationTriggered(NodeConfigFileSection):
+    """
+    Return OVIRT_NODE_REGISTER value from /etc/default/ovirt
+    via retrieve() or update this value via update() if
+    registration was triggered
+    """
+    keys = ("OVIRT_NODE_REGISTER",)
+
+    @NodeConfigFileSection.map_and_update_defaults_decorator
+    def update(self, node_register):
+        valid.Boolean()(node_register)
+        return {"OVIRT_NODE_REGISTER": "True" if node_register else None}
+
+    def retrieve(self):
+        cfg = dict(NodeConfigFileSection.retrieve(self))
+        try:
+            if cfg['node_register'] is not None:
+                return strtobool(cfg['node_register'])
+        except ValueError:
+            LOGGER.error("OVIRT_NODE_REGISTER must be a bool!")
+
+        return False
 
 
 class NodeRegister(utils.Transaction.Element):
@@ -362,6 +397,9 @@ class NodeRegister(utils.Transaction.Element):
             msg = "{t}\n{l}".format(t=out.split("Traceback")[0],
                                     l="Full log: /var/log/vdsm/register.log")
             raise Exception(msg)
+
+        # Registration triggered with success, set OVIRT_NODE_REGISTER
+        RegistrationTriggered().update(True)
 
 
 class SetRootPassword(utils.Transaction.Element):

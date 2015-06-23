@@ -20,227 +20,160 @@
 import sys
 import logging
 
+from distutils.util import strtobool
+
 import ovirtnode.ovirtfunctions as _functions
 
-from ovirt.node import log, utils
+from ovirt.node import valid
 from ovirt.node.config.defaults import SSH
-from ovirt.node.setup.vdsm import engine_page
 from ovirt.node.utils import system
+from ovirt.node.config.defaults import NodeConfigFileSection
+
+from ovirt.node.setup.vdsm.engine_page import execute_cmd, \
+    RegistrationTriggered, NodeManagement
 
 from systemd import journal
 
-class AutoRegister(object):
 
-    def __init__(self):
-        self.logger = self._set_logger()
+class PwdSetToEngineInstall(NodeConfigFileSection):
+    """
+    Return OVIRT_ENGINE_PWD_SET value from /etc/default/ovirt
+    via retrieve() or update this value via update() if
+    registration was triggered
+    """
+    keys = ("OVIRT_ENGINE_ADMIN_PWD_SET",)
 
-        # For autoinstall using check-fqdn = False as previous autoinstall
-        # doesn't check CA cert
-        self.vdsm_tool_cmd = "vdsm-tool register --check-fqdn False "
+    @NodeConfigFileSection.map_and_update_defaults_decorator
+    def update(self, engine_pwd_set):
+        valid.Boolean()(engine_pwd_set)
+        return {"OVIRT_ENGINE_ADMIN_PWD_SET": "True"
+                if engine_pwd_set else None}
 
-        self.kargs = None
-        self.mserver = None
-        self.mserver_port = None
-
-    def _set_logger(self):
-        """
-        Set the logging schema
-        """
-        log = logging.getLogger(__name__)
-        log.propagate = False
-        log.setLevel(logging.DEBUG)
-        log.addHandler(
-            journal.JournalHandler(SYSLOG_IDENTIFIER='ovirt-node-plugin-vdsm')
-        )
-        return log
-
-    def _is_karg_set(self, key, debug=True):
-        """
-        Check if the key was used as kernel argument
-
-        Arguments:
-        key   -- The key to look for
-        debug -- Debugging prints
-
-        Returns: the key or False
-        """
-        if key in self.kargs and len(self.kargs[key]) > 0:
-            if debug:
-                self.logger.info("autoinstall: kernel argument "
-                                 "[%s] is set [%s]" % (key, self.kargs[key]))
-            return self.kargs[key]
+    def retrieve(self):
+        cfg = dict(NodeConfigFileSection.retrieve(self))
+        try:
+            if cfg['engine_pwd_set'] is not None:
+                return strtobool(cfg['engine_pwd_set'])
+        except ValueError:
+            LOGGER.error("OVIRT_ENGINE_ADMIN_PWD_SET must be a bool!")
 
         return False
 
-    def is_node_registered(self):
-        """
-        Validate OVIRT_NODE_AUTO_REGISTER in /etc/default/ovirt
-        if already set, no need to execute auto-register
 
-        Return True or False
-        """
-        self.logger.info("== autoinstall: validating /etc/default/ovirt")
+def _set_logger():
+    """
+    Set the logging schema
+    """
+    log = logging.getLogger(__name__)
+    log.propagate = False
+    log.setLevel(logging.DEBUG)
+    log.addHandler(
+        journal.JournalHandler(SYSLOG_IDENTIFIER='ovirt-node-plugin-vdsm')
+    )
+    return log
 
-        with open('/etc/default/ovirt', 'r') as f:
-            for line in f:
-                if "OVIRT_NODE_AUTO_REGISTER=True" in line:
-                    return True
+LOGGER = _set_logger()
 
-        return False
 
-    def get_kargs(self):
-        """
-        Find in the boot kernel arguments from /var/log/messages,
-        the autoinstall keys that start with "management_"
+def get_kargs():
+    """
+    Find in the boot kernel arguments from /var/log/messages,
+    the autoinstall keys that start with "management_"
 
-        Return a dict with the keys
-        """
-        self.logger.info("== autoinstall: validating kernel arguments ==")
-        key_word_karg = "Command line"
-        with open('/var/log/messages', 'r') as f:
-            for line in f:
-                if key_word_karg in line and "management_server" in line:
-                    self.kargs = system.kernel_cmdline_arguments(
-                        line.split(key_word_karg)[1]
-                    )
-                    self.logger.info("autoinstall kargs: {k}".format(
-                        k=self.kargs)
-                    )
-                    break
-
-        return self.kargs
-
-    def get_management_server(self):
-        """
-        If management_server exist in the kernel argument
-        add it to the auto-register script call
-        """
-        if self._is_karg_set("management_server"):
-            self.mserver = self.kargs["management_server"]
-            self.vdsm_tool_cmd += "--engine-fqdn {s} ".format(
-                                  s=self.mserver)
-        else:
-            raise RuntimeError("management_server karg is required!")
-
-    def get_management_server_port(self):
-        """
-        If management_server_port exist in the kernel argument
-        add it to the auto-register script call
-        """
-        if self._is_karg_set("management_server_port"):
-            if not self._is_karg_set("management_server", debug=False):
-                raise RuntimeError("management_server_port requires"
-                                   " to set management_server key too!")
-            else:
-                self.mserver_port = self.kargs["management_server_port"]
-                self.vdsm_tool_cmd += "--engine-https-port {p} ".format(
-                                      p=self.mserver_port)
-
-    def get_management_server_fingerprint(self):
-        """
-        If management_server_fingerprint exist in the kernel argument
-        add it to the auto-register script call
-        """
-        if self._is_karg_set("management_server_fingerprint"):
-            if not self._is_karg_set("management_server", debug=False):
-                raise RuntimeError("management_server_fingerprint requires"
-                                   " to set management_server key too!")
-            else:
-                self.vdsm_tool_cmd += "--fingerprint {f}".format(
-                    f=self.kargs["management_server_fingerprint"]
+    Return a dict with the keys
+    """
+    kargs = {}
+    key_word_karg = "Command line"
+    with open('/var/log/messages', 'r') as f:
+        for line in f:
+            if key_word_karg in line and "management_server" in line:
+                kargs = system.kernel_cmdline_arguments(
+                    line.split(key_word_karg)[1]
                 )
+                break
 
-    def write_changes(self):
-        """
-        Write OVIRT_MANAGEMENT and OVIRT_MANAGEMENT_PORT
-        """
-        # Updating OVIRT_MANAGEMENT_SERVER in /etc/default/ovirt
+    return kargs
 
-        if self.mserver_port is not None:
-            engine_page.VDSM().update(server=self.mserver,
-                                      port=self.mserver_port,
-                                      cert_path="/etc/pki/ovirt-engine/ca.pem")
-        else:
-            engine_page.VDSM().update(server=self.mserver,
-                                      cert_path="/etc/pki/ovirt-engine/ca.pem")
 
-        with open('/etc/default/ovirt', 'a') as f:
-            f.write("OVIRT_NODE_AUTO_REGISTER=True")
+def enable_ssh_set_root(root_pwd):
+    """
+    Check if keys: rhevm_admin_password or engine_admin_password is set
+    if it's present, set root passwd and enable SSH daemon
 
-    def pass_sysadm(self):
-        """
-        Check if keys: rhevm_admin_password or engine_admin_password is set
-        if it's present, set root passwd and enable SSH daemon
+    Note: To generate password to use with rhevm_admin_password and
+          engine_admin_password you must execute:
+             $ openssl passwd -salt SALT or openssl passwd -1
+    """
+    _functions.unmount_config("/etc/shadow")
+    _functions.unmount_config("/etc/passwd")
 
-        Note: To generate password to use with rhevm_admin_password and
-              engine_admin_password you must execute: openssl passwd -1
-        """
-        admin_pwd = None
-        if self._is_karg_set("rhevm_admin_password"):
-            admin_pwd = "rhevm_admin_password"
+    execute_cmd("/usr/sbin/usermod -p %s root" % root_pwd)
+    execute_cmd("chage -E -1 root")
 
-        if self._is_karg_set("engine_admin_password"):
-            admin_pwd = "engine_admin_password"
+    LOGGER.info("autoinstall: Password updated for user root!")
 
-        if admin_pwd:
-            _functions.unmount_config("/etc/shadow")
-            _functions.unmount_config("/etc/passwd")
-            engine_page.execute_cmd("/usr/sbin/usermod -p %s root" %
-                                    self.kargs[admin_pwd])
-
-            engine_page.execute_cmd("chage -E -1 root")
-            utils.fs.Config().persist("/etc/shadow")
-            utils.fs.Config().persist("/etc/passwd")
-            self.logger.info("autoinstall: Password updated for user root!")
-
-            # Enable SSHD
-            SSH().update(pwauth=True)
-            SSH().commit()
-
-    def execute_registration(self):
-        self.logger.info("autoinstall: vdsm-tool register command")
-        self.logger.info("{c}".format(c=self.vdsm_tool_cmd))
-        out, ret = engine_page.execute_cmd(self.vdsm_tool_cmd)
-        self.logger.info("autoinstall: vdsm-tool ret: {o}".format(o=out))
-        if ret != 0:
-            raise RuntimeError("autoinstall: vdsm-tool register FAILED!")
+    # Enable SSHD
+    SSH().update(pwauth=True)
+    SSH().commit()
+    LOGGER.info("autoinstall: SSH Enabled!")
 
 
 def main():
-    reg = AutoRegister()
-    reg.logger.info("=======================================")
-    reg.logger.info("Auto-Registering the node")
-    reg.logger.info("=======================================")
+    LOGGER.info("=======================================")
+    LOGGER.info("Auto-Registering the node")
+    LOGGER.info("=======================================")
 
-    if not reg.is_node_registered():
-        reg.logger.info("OVIRT_NODE_AUTO_REGISTER is NOT set, "
-                        "starting auto-register..")
-        if reg.get_kargs() is None:
-            reg.logger.info(
-                "autoinstall: Not found management_server, "
-                "management_server_port or "
-                "management_server_fingerprint "
-                "in the kernel argument"
+    # For autoinstall using check-fqdn = False as previous autoinstall
+    # doesn't check CA cert
+    vdsm_tool_cmd = "vdsm-tool register --check-fqdn False "
+    node = NodeManagement().retrieve()
+
+    kargs = get_kargs()
+    pwdset = PwdSetToEngineInstall().retrieve()
+    if 'engine_admin_password' in kargs and not pwdset:
+        enable_ssh_set_root(kargs['engine_admin_password'])
+        PwdSetToEngineInstall().update(True)
+
+    if 'rhevm_admin_password' in kargs and not pwdset:
+        enable_ssh_set_root(kargs['rhevm_admin_password'])
+        PwdSetToEngineInstall().update(True)
+
+    if not RegistrationTriggered().retrieve():
+        LOGGER.info("OVIRT_NODE_REGISTER is NOT set, "
+                    "starting auto-register..")
+
+        if not node['mserver']:
+            LOGGER.info(
+                "autoinstall: management_server must be set!"
             )
             return 0
     else:
-        reg.logger.info(
-            "No need to auto-register, OVIRT_NODE_AUTO_REGISTER is set!"
+        LOGGER.info(
+            "No need to auto-register, OVIRT_NODE_REGISTER is set!"
         )
         return 0
 
-    try:
-        reg.get_management_server()
-        reg.get_management_server_port()
-        reg.get_management_server_fingerprint()
-        reg.execute_registration()
-        reg.write_changes()
-    except:
-        reg.logger.exception("Unable to auto-register! "
-                             "Full log: /var/log/vdsm/register.log")
-        return 1
+    vdsm_tool_cmd += "--engine-fqdn {s} ".format(s=node['mserver'])
 
-    reg.logger.info("== autoinstall successfully finished ==")
+    if node['mport']:
+        vdsm_tool_cmd += "--engine-https-port {p} ".format(p=node['mport'])
+
+    if node['fprint']:
+        vdsm_tool_cmd += "--fingerprint {f}".format(f=node['fprint'])
+
+    LOGGER.info("autoinstall: vdsm-tool register command")
+    LOGGER.info("{c}".format(c=vdsm_tool_cmd))
+
+    out, ret = execute_cmd(vdsm_tool_cmd)
+    LOGGER.info("autoinstall: vdsm-tool ret: {o}".format(o=out))
+    if ret != 0:
+        raise RuntimeError("autoinstall: vdsm-tool register FAILED!\n"
+                           "Full log: /var/log/vdsm/register.log")
+
+    # Registration triggered with success, set OVIRT_NODE_REGISTER
+    RegistrationTriggered().update(True)
+    LOGGER.info("== autoinstall successfully finished ==")
+
     return 0
 
 if __name__ == "__main__":
