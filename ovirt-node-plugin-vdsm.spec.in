@@ -22,7 +22,6 @@ Requires:       vdsm-hook-vhostmd
 %endif
 
 Requires:       ovirt-node-plugin-hosted-engine
-Requires:       vdsm-gluster
 Requires:       vdsm-hook-ethtool-options
 Requires(post): augeas
 
