@@ -3,7 +3,7 @@
 shopt -s nullglob
 
 rm -rf ../exported-artifacts/*
-rm -rf $HOME/rpmbuild
+rm -rf tmp.repos
 # generate automake/autoconf files
 ./autogen.sh
 
@@ -11,7 +11,7 @@ rm -rf $HOME/rpmbuild
 make rpms
 mkdir -p ../exported-artifacts/
 
-for file in $(find $HOME/rpmbuild/ -iregex ".*\.\(tar\.gz\|rpm\)$"); do
+for file in $(find tmp.repos -iregex ".*\.\(tar\.gz\|rpm\)$"); do
     echo "Archiving $file"
     mv "$file" ../exported-artifacts/
 done
