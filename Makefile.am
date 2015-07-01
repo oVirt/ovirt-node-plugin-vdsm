@@ -26,6 +26,7 @@ SHELL := /bin/bash
 SUBDIRS = \
 	conf \
 	autoinstall \
+	vdsm-upgrade \
 	hooks \
 	src \
 	systemd \

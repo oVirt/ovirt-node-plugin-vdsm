@@ -19,6 +19,7 @@ AC_CONFIG_FILES([Makefile
                 src/config.py
                 systemd/Makefile
                 autoinstall/Makefile
+                vdsm-upgrade/Makefile
                 conf/Makefile
                 hooks/Makefile
                 recipe/Makefile
