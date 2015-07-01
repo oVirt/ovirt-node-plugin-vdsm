@@ -12,3 +12,4 @@ autom4te.cache
 py-compile
 config.status
 config.log
+tmp.repos/*
