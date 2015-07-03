@@ -96,6 +96,7 @@ EOF_sysctl
 %files
 %dir %{_datadir}/vdsm-reg
 %license COPYING
+%doc README
 %{python_sitelib}/ovirt/node/setup/vdsm
 %if 0%{?with_systemd}
 %{_unitdir}/ovirt-node-plugin-vdsm.service
