@@ -1,0 +1,7 @@
+Reading Autoinstall Logs
+============================
+
+The ovirt-node-plugin-vdsm service will trigger ovirt-register tool.
+To read all output of service and ovirt-register tool, it's recommended:
+
+# journalctl -u ovirt-node-plugin-vdsm
