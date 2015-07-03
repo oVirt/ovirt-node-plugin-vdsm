@@ -67,9 +67,12 @@ def _set_logger():
     log = logging.getLogger(__name__)
     log.propagate = False
     log.setLevel(logging.DEBUG)
-    log.addHandler(
-        journal.JournalHandler(SYSLOG_IDENTIFIER='ovirt-node-plugin-vdsm')
-    )
+    formatter = logging.Formatter("%(message)s")
+    jhandler = journal.JournalHandler()
+    jhandler.setLevel(logging.DEBUG)
+    jhandler.setFormatter(formatter)
+    log.addHandler(jhandler)
+
     return log
 
 LOGGER = _set_logger()
@@ -125,7 +128,7 @@ def main():
 
     # For autoinstall using check-fqdn = False as previous autoinstall
     # doesn't check CA cert
-    vdsm_tool_cmd = "vdsm-tool register --check-fqdn False "
+    reg_tool_cmd = "ovirt-register --nocheck-fqdn "
     node = NodeManagement().retrieve()
 
     kargs = get_kargs()
@@ -153,22 +156,21 @@ def main():
         )
         return 0
 
-    vdsm_tool_cmd += "--engine-fqdn {s} ".format(s=node['mserver'])
+    reg_tool_cmd += "--engine-fqdn {s} ".format(s=node['mserver'])
 
     if node['mport']:
-        vdsm_tool_cmd += "--engine-https-port {p} ".format(p=node['mport'])
+        reg_tool_cmd += "--engine-https-port {p} ".format(p=node['mport'])
 
     if node['fprint']:
-        vdsm_tool_cmd += "--fingerprint {f}".format(f=node['fprint'])
+        reg_tool_cmd += "--fingerprint {f}".format(f=node['fprint'])
 
-    LOGGER.info("autoinstall: vdsm-tool register command")
-    LOGGER.info("{c}".format(c=vdsm_tool_cmd))
+    LOGGER.info("autoinstall: register command")
+    LOGGER.info("{c}".format(c=reg_tool_cmd))
 
-    out, ret = execute_cmd(vdsm_tool_cmd)
-    LOGGER.info("autoinstall: vdsm-tool ret: {o}".format(o=out))
+    out, ret = execute_cmd(reg_tool_cmd)
+    LOGGER.info("autoinstall: ret: {o}".format(o=out))
     if ret != 0:
-        raise RuntimeError("autoinstall: vdsm-tool register FAILED!\n"
-                           "Full log: /var/log/vdsm/register.log")
+        raise RuntimeError("autoinstall: register FAILED!")
 
     # Registration triggered with success, set OVIRT_NODE_REGISTER
     RegistrationTriggered().update(True)

@@ -31,6 +31,7 @@ from socket import error as socket_error
 from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH
 from ovirt.node.plugins import Changeset
+from ovirt_register.register import Register
 
 from vdsm import vdscli
 
@@ -160,6 +161,7 @@ class Plugin(plugins.NodePlugin):
     def __init__(self, app):
         super(Plugin, self).__init__(app)
         self._model = {}
+        self.reg = None
         sync_mgmt()
 
     def name(self):
@@ -270,7 +272,12 @@ class Plugin(plugins.NodePlugin):
                 self._port = config.ENGINE_PORT
 
             cfqdn = effective_model["check.fqdn"]
-            txs += [NodeRegister(self._server, self._port, cfqdn)]
+
+            self.reg = Register(engine_fqdn=self._server,
+                                engine_https_port=self._port,
+                                check_fqdn=cfqdn)
+
+            txs += [NodeRegister(self.reg)]
 
         model.update(server=self._server, port=self._port)
 
@@ -375,31 +382,25 @@ class RegistrationTriggered(NodeConfigFileSection):
 class NodeRegister(utils.Transaction.Element):
     title = "Registering oVirt Node..."
 
-    def __init__(self, engine, port, check_fqdn):
+    def __init__(self, reg):
         super(NodeRegister, self).__init__()
-        self.engine = engine
-        self.port = port
-
-        if check_fqdn:
-            self.check_fqdn = True
-        else:
-            self.check_fqdn = False
+        self.reg = reg
 
     def commit(self):
-        out, ret = execute_cmd("vdsm-tool register --engine-fqdn {e} "
-                               "--engine-https-port {p} "
-                               "--ssh-user {s} "
-                               "--check-fqdn {c}".format(e=self.engine,
-                                                         p=self.port,
-                                                         s="root",
-                                                         c=self.check_fqdn))
-        if ret != int("0"):
-            msg = "{t}\n{l}".format(t=out.split("Traceback")[0],
-                                    l="Full log: /var/log/vdsm/register.log")
+
+        try:
+            self.reg.detect_reg_protocol()
+            uuid = self.reg.collect_host_uuid()
+            self.reg.pki_trust()
+            ssh_trust = self.reg.ssh_trust()
+            self.reg.execute_registration()
+        except Exception as e:
+            msg = "{0}\n".format(e)
             raise Exception(msg)
 
         # Registration triggered with success, set OVIRT_NODE_REGISTER
         RegistrationTriggered().update(True)
+        return ssh_trust, uuid
 
 
 class SetRootPassword(utils.Transaction.Element):
