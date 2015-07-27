@@ -74,6 +74,7 @@ install -Dm 0644 systemd/ovirt-node-plugin-vdsm.service %{buildroot}%{_unitdir}/
 # sends messages to engine. As this tool is only used in ovirt-node,
 # we should ship it inside ovirt-node-plugin-vdsm. 
 install -p -d -m755 %{buildroot}%{_datadir}/vdsm-reg
+install -p -d -m755 %{buildroot}%{_localstatedir}/log/vdsm-reg
 install -p -m755 vdsm-upgrade/vdsm-upgrade %buildroot%{_datadir}/vdsm-reg/vdsm-upgrade
 
 
@@ -101,6 +102,7 @@ EOF_sysctl
 %{recipe_root}
 
 %files
+%dir %{_localstatedir}/log/vdsm-reg
 %dir %{_datadir}/vdsm-reg
 %license COPYING
 %doc README
