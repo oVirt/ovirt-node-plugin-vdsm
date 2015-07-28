@@ -220,8 +220,6 @@ class Plugin(plugins.NodePlugin):
                          "Note: Make sure you have configured"
                          " NODE FQDN first"),
                 ui.Divider("divider[0]"),
-                ui.Checkbox("check.fqdn", "Check Engine FQDN?", state=True),
-                ui.Divider("divider[1]"),
                 ui.Label("vdsm_cfg.password._label",
                          "Optional password for adding Node through " +
                          str(config.engine_name)),
@@ -271,11 +269,9 @@ class Plugin(plugins.NodePlugin):
                 self._server = effective_model["vdsm_cfg.address"]
                 self._port = config.ENGINE_PORT
 
-            cfqdn = effective_model["check.fqdn"]
-
             self.reg = Register(engine_fqdn=self._server,
                                 engine_https_port=self._port,
-                                check_fqdn=cfqdn)
+                                check_fqdn=False)
 
             txs += [NodeRegister(self.reg)]
 
