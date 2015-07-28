@@ -3,9 +3,10 @@ Description=oVirt Node Plugin VDSM
 After=network.target network-online.target supervdsmd.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
+Type=simple
 ExecStart=/sbin/ovirt-node-plugin-vdsm-autoreg
+Restart=on-failure
+RestartSec=60s
 Nice=-20
 User=root
 Group=root
