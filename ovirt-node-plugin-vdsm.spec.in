@@ -70,7 +70,7 @@ install -Dm 0644 systemd/ovirt-node-plugin-vdsm.service %{buildroot}%{_unitdir}/
 %endif
 
 # vdsm-reg is deprecated, we do not ship it anymore.
-# However, vdsm-upgrade tool is still required since it 
+# However, vdsm-upgrade tool is still required since it
 # sends messages to engine. As this tool is only used in ovirt-node,
 # we should ship it inside ovirt-node-plugin-vdsm. 
 install -p -d -m755 %{buildroot}%{_datadir}/vdsm-reg
