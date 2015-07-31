@@ -26,7 +26,7 @@ import ovirtnode.ovirtfunctions as _functions
 
 from ovirt.node import valid
 from ovirt.node.config.defaults import SSH
-from ovirt.node.utils import system
+from ovirt.node.utils import system, process
 from ovirt.node.config.defaults import NodeConfigFileSection
 
 from ovirt.node.setup.vdsm.engine_page import execute_cmd, \
@@ -110,8 +110,8 @@ def enable_ssh_set_root(root_pwd):
     _functions.unmount_config("/etc/shadow")
     _functions.unmount_config("/etc/passwd")
 
-    execute_cmd("/usr/sbin/usermod -p %s root" % root_pwd)
-    execute_cmd("chage -E -1 root")
+    process.call(["/usr/sbin/usermod", "-p", root_pwd, "root"])
+    process.call(["chage", "-E", "-1", "root"])
 
     LOGGER.info("autoinstall: Password updated for user root!")
 
