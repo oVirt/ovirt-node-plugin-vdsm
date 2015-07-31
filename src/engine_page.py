@@ -224,13 +224,14 @@ class Plugin(plugins.NodePlugin):
                          "Optional password for adding Node through " +
                          str(config.engine_name)),
                 ui.Label("vdsm_cfg.password._label2",
-                         "Note: Setting password will enable SSH daemon"),
+                         "Note: This sets the root password and "
+                         "enables SSH"),
                 ui.ConfirmedEntry("vdsm_cfg.password", "Password:", True),
             ]
             buttons = [
                 ui.SaveButton(
                     "action.register",
-                    "Save & Register"
+                    "Save / Register"
                 )
             ]
 
