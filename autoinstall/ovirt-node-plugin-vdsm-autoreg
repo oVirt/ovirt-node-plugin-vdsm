@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.  A copy of the GNU General Public License is
 # also available at http://www.gnu.org/copyleft/gpl.html.
+import socket
 import sys
 import logging
 
@@ -29,8 +30,8 @@ from ovirt.node.config.defaults import SSH
 from ovirt.node.utils import system, process
 from ovirt.node.config.defaults import NodeConfigFileSection
 
-from ovirt.node.setup.vdsm.engine_page import execute_cmd, \
-    RegistrationTriggered, NodeManagement
+from ovirt.node.setup.vdsm.engine_page import RegistrationTriggered, \
+    NodeManagement
 
 from systemd import journal
 
@@ -128,7 +129,8 @@ def main():
 
     # For autoinstall using check-fqdn = False as previous autoinstall
     # doesn't check CA cert
-    reg_tool_cmd = "ovirt-register --nocheck-fqdn "
+    reg_tool_cmd = ['vdsm-tool', 'register', '--check-fqdn', 'False',
+                    '--node-name', socket.gethostname()]
     node = NodeManagement().retrieve()
 
     kargs = get_kargs()
@@ -156,19 +158,18 @@ def main():
         )
         return 0
 
-    reg_tool_cmd += "--engine-fqdn {s} ".format(s=node['mserver'])
+    reg_tool_cmd.extend(['--engine-fqdn', node['mserver']])
 
     if node['mport']:
-        reg_tool_cmd += "--engine-https-port {p} ".format(p=node['mport'])
+        reg_tool_cmd.extend(['--engine-https-port', node['mport']])
 
     if node['fprint']:
-        reg_tool_cmd += "--fingerprint {f}".format(f=node['fprint'])
+        reg_tool_cmd.extend(['--fingerprint', node['fprint']])
 
     LOGGER.info("autoinstall: register command")
     LOGGER.info("{c}".format(c=reg_tool_cmd))
 
-    out, ret = execute_cmd(reg_tool_cmd)
-    LOGGER.info("autoinstall: ret: {o}".format(o=out))
+    ret = process.call(reg_tool_cmd)
     if ret != 0:
         raise RuntimeError("autoinstall: register FAILED!")
 
