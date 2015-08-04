@@ -369,10 +369,10 @@ class NodeRegister(utils.Transaction.Element):
                                   '--ssh-user', 'root',
                                   '--check-fqdn', 'False'])
         except process.CalledProcessError as e:
-            msg = "{msg} {engine}!\n{output}\n{full_log}".format(
-                msg='Cannot register the node into',
-                engine=self.engine,
-                output=e.output.split("raise")[1].split("\n")[1],
+            msg = "{err} {engineaddr}!\n{output_cmd}\n{full_log}".format(
+                err='Cannot register the node into',
+                engineaddr=self.engine,
+                output_cmd=e.output.split("raise")[1].split("\n")[1],
                 full_log="Full log: /var/log/vdsm/register.log"
             )
             raise Exception(msg)
