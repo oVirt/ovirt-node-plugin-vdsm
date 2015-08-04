@@ -21,8 +21,7 @@
 # also available at http://www.gnu.org/copyleft/gpl.html.
 import augeas
 import errno
-import subprocess
-import shlex
+import socket
 
 from . import config
 from distutils.util import strtobool
@@ -31,7 +30,7 @@ from socket import error as socket_error
 from ovirt.node import plugins, valid, ui, utils, log
 from ovirt.node.config.defaults import NodeConfigFileSection, SSH
 from ovirt.node.plugins import Changeset
-from ovirt_register.register import Register
+from ovirt.node.utils import process
 
 from vdsm import vdscli
 
@@ -41,21 +40,6 @@ Configure Engine
 
 
 LOGGER = log.getLogger(__name__)
-
-
-def execute_cmd(cmd, env_shell=False):
-    try:
-        cmd = subprocess.Popen(shlex.split(cmd),
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
-                               shell=env_shell)
-
-        output, err = cmd.communicate()
-
-    except OSError:
-        LOGGER.debug("Cannot execute cmd {c}, err {e}".format(c=cmd, e=err))
-
-    return output, cmd.returncode
 
 
 def validate_server(server):
@@ -161,7 +145,6 @@ class Plugin(plugins.NodePlugin):
     def __init__(self, app):
         super(Plugin, self).__init__(app)
         self._model = {}
-        self.reg = None
         sync_mgmt()
 
     def name(self):
@@ -216,9 +199,6 @@ class Plugin(plugins.NodePlugin):
                 ),
                 ui.Entry("vdsm_cfg.address",
                          str(config.engine_name) + " FQDN (or fqdn:port):"),
-                ui.Label("nodefqdn",
-                         "Note: Make sure you have configured"
-                         " NODE FQDN first"),
                 ui.Divider("divider[0]"),
                 ui.Label("vdsm_cfg.password._label",
                          "Optional password for adding Node through " +
@@ -270,11 +250,7 @@ class Plugin(plugins.NodePlugin):
                 self._server = effective_model["vdsm_cfg.address"]
                 self._port = config.ENGINE_PORT
 
-            self.reg = Register(engine_fqdn=self._server,
-                                engine_https_port=self._port,
-                                check_fqdn=False)
-
-            txs += [NodeRegister(self.reg)]
+            txs += [NodeRegister(self._server, self._port)]
 
         model.update(server=self._server, port=self._port)
 
@@ -379,25 +355,30 @@ class RegistrationTriggered(NodeConfigFileSection):
 class NodeRegister(utils.Transaction.Element):
     title = "Registering oVirt Node..."
 
-    def __init__(self, reg):
+    def __init__(self, engine, port):
         super(NodeRegister, self).__init__()
-        self.reg = reg
+        self.engine = engine
+        self.port = port
 
     def commit(self):
-
         try:
-            self.reg.detect_reg_protocol()
-            uuid = self.reg.collect_host_uuid()
-            self.reg.pki_trust()
-            ssh_trust = self.reg.ssh_trust()
-            self.reg.execute_registration()
-        except Exception as e:
-            msg = "{0}\n".format(e)
+            process.check_output(['vdsm-tool', 'register',
+                                  '--engine-fqdn', self.engine,
+                                  '--node-name', socket.gethostname(),
+                                  '--engine-https-port', self.port,
+                                  '--ssh-user', 'root',
+                                  '--check-fqdn', 'False'])
+        except process.CalledProcessError as e:
+            msg = "{msg} {engine}!\n{output}\n{full_log}".format(
+                msg='Cannot register the node into',
+                engine=self.engine,
+                output=e.output.split("raise")[1].split("\n")[1],
+                full_log="Full log: /var/log/vdsm/register.log"
+            )
             raise Exception(msg)
 
         # Registration triggered with success, set OVIRT_NODE_REGISTER
         RegistrationTriggered().update(True)
-        return ssh_trust, uuid
 
 
 class SetRootPassword(utils.Transaction.Element):
