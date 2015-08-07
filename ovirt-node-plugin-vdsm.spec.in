@@ -117,6 +117,10 @@ EOF_sysctl
 %{_sysconfdir}/default/version.ovirt-node-plugin-vdsm
 
 %changelog
+* Fri Aug 07 2015 Douglas Schilling Landgraf <dougsland@redhat.com> - 0.6.1
+- replace ovirt-register to vdsm-tool register
+- use ovirt-node-plugin-vdsm service
+
 * Fri Nov 07 2014 Fabian Deutsch <fabiand@redhat.com> - 0.4.3
 - Explicitly start vdsmd again rhbz#1156369
 
