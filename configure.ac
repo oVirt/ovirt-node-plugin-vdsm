@@ -2,7 +2,7 @@ define([VERSION_MAJOR], [0])
 define([VERSION_MINOR], [6])
 define([VERSION_FIX], [1])
 define([VERSION_NUMBER], VERSION_MAJOR[.]VERSION_MINOR[.]VERSION_FIX)
-define([VERSION_SUFFIX], [_master])
+define([VERSION_SUFFIX], [_ovirt36])
 
 AC_INIT([ovirt-node-plugin-vdsm], VERSION_NUMBER[]VERSION_SUFFIX, [node-devel@ovirt.org])
 PACKAGE_RPM_VERSION="VERSION_NUMBER"
