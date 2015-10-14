@@ -252,7 +252,7 @@ class Plugin(plugins.NodePlugin):
 
             txs += [NodeRegister(self._server, self._port)]
 
-        model.update(server=self._server, port=self._port)
+        model.update(mserver=self._server, mport=self._port)
 
         if len(txs) > 0:
             progress_dialog = ui.TransactionProgressDialog("dialog.txs", txs,
