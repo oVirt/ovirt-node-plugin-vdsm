@@ -369,10 +369,24 @@ class NodeRegister(utils.Transaction.Element):
                                   '--ssh-user', 'root',
                                   '--check-fqdn', 'False'])
         except process.CalledProcessError as e:
+            msg_users = ""
+            if "No route to host" in e.output:
+                msg_users = "No route to host {0}".format(self.engine)
+
+            elif "Connection refused" in e.output:
+                msg_users = "Connection refused to {0}".format(self.engine)
+
+            elif "http response was non OK, code 400" in e.output:
+                msg_users = "http response was non OK, code 400.\n" \
+                            "Have you tried to add into the datacenter an " \
+                            "existing hypervisor?"
+            else:
+                msg_users = e.output
+
             msg = "{err} {engineaddr}!\n{output_cmd}\n{full_log}".format(
                 err='Cannot register the node into',
                 engineaddr=self.engine,
-                output_cmd=e.output.split("raise")[1].split("\n")[1],
+                output_cmd=msg_users,
                 full_log="Full log: /var/log/vdsm/register.log"
             )
             raise Exception(msg)
