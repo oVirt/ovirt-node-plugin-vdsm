@@ -27,6 +27,9 @@ Requires:       vdsm-hook-ethtool-options
 Requires(post): augeas
 
 BuildArch:      noarch
+
+BuildRequires:  autoconf
+BuildRequires:  automake
 BuildRequires:  python2-devel
 %if 0%{?with_systemd}
 BuildRequires:  systemd-units
