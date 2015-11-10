@@ -44,7 +44,7 @@ LOGGER = log.getLogger(__name__)
 
 def validate_server(server):
     """Validate server str if user provided ':' port schema"""
-    return True if ":" in server else False
+    return bool(server and ":" in server)
 
 
 def _hack_to_workaround_pyaug_issues(mgmtIface, cfg, engine_data):
