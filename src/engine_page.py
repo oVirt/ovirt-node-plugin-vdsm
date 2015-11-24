@@ -191,6 +191,18 @@ class Plugin(plugins.NodePlugin):
                           "registering"),
                 ui.Divider("divider[0]")
             ]
+        elif self._hosted_engine_configured():
+            ws = [
+                ui.Header(
+                    "header[0]",
+                    header_menu
+                ),
+                ui.Notice("he.notice",
+                          "Hosted Engine is configured. Engine registration "
+                          "is disabled, as this host is already reigstered to"
+                          " the hosted engine"),
+                ui.Divider("divider[0]")
+                ]
         else:
             ws = [
                 ui.Header(
@@ -264,6 +276,21 @@ class Plugin(plugins.NodePlugin):
 
         # Acts like a page reload
         return self.ui_content()
+
+    def _hosted_engine_configured(self):
+        try:
+            from ovirt.node.setup.hostedengine import hosted_engine_page
+            return hosted_engine_page.Plugin()._configured()
+        except ImportError:
+            self.logger.debug("Can't import hosted engine configuration data. "
+                              "Is hosted engine installed/supported on this "
+                              "version?")
+            return False
+        except:
+            self.logger.exception("There was a problem querying the hosted "
+                                  "engine configuration status. ",
+                                  exc_info=True)
+            return False
 
 
 def compatiblePort(portNumber):
