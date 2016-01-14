@@ -279,9 +279,8 @@ class Plugin(plugins.NodePlugin):
 
     def _hosted_engine_configured(self):
         try:
-            from ovirt.node.setup.hostedengine import hosted_engine_page
-            return hosted_engine_page.Plugin()._configured()
-        except ImportError:
+            return self.application.plugins["Hosted Engine"]._configured()
+        except KeyError:
             self.logger.debug("Can't import hosted engine configuration data. "
                               "Is hosted engine installed/supported on this "
                               "version?")
