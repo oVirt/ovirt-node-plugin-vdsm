@@ -279,7 +279,7 @@ class Plugin(plugins.NodePlugin):
 
     def _hosted_engine_configured(self):
         try:
-            return self.application.plugins["Hosted Engine"]._configured()
+            return self.application.plugins()["Hosted Engine"]._configured()
         except KeyError:
             self.logger.debug("Can't import hosted engine configuration data. "
                               "Is hosted engine installed/supported on this "
