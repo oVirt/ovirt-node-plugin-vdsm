@@ -191,6 +191,34 @@ class Plugin(plugins.NodePlugin):
                           "registering"),
                 ui.Divider("divider[0]")
             ]
+
+        elif self._hosted_engine_configured():
+            ws = [
+                ui.Header(
+                    "header[0]",
+                    header_menu
+                ),
+                ui.Notice("he.notice",
+                          "Hosted Engine is configured. Engine registration "
+                          "is disabled, as this host is already registered to"
+                          " the hosted engine"),
+                ui.Divider("divider[0]"),
+
+                ui.Label("vdsm_cfg.password._label",
+                         "Password for adding additional hosts"),
+                ui.Label("vdsm_cfg.password._label2",
+                         "Note: This sets the root password and "
+                         "enables SSH"),
+                ui.ConfirmedEntry("vdsm_cfg.password", "Password:", True),
+                ]
+
+            buttons = [
+                ui.SaveButton(
+                    "action.register",
+                    "Save"
+                )
+            ]
+
         else:
             ws = [
                 ui.Header(
@@ -265,6 +293,19 @@ class Plugin(plugins.NodePlugin):
         # Acts like a page reload
         return self.ui_content()
 
+    def _hosted_engine_configured(self):
+        try:
+            return self.application.plugins()["Hosted Engine"]._configured()
+        except KeyError:
+            self.logger.debug("Can't import hosted engine configuration data. "
+                              "Is hosted engine installed/supported on this "
+                              "version?")
+            return False
+        except:
+            self.logger.exception("There was a problem querying the hosted "
+                                  "engine configuration status. ",
+                                  exc_info=True)
+            return False
 
 def compatiblePort(portNumber):
     """
