@@ -307,6 +307,7 @@ class Plugin(plugins.NodePlugin):
                                   exc_info=True)
             return False
 
+
 def compatiblePort(portNumber):
     """
     Until the version 3.0, oVirt Engine provided port 8443/8080 to oVirt Node
